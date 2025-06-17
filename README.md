@@ -30,4 +30,4 @@ g++ -std=c++17 chessengine.cpp -o chessengine
 
 ## 📝 About This Project
 
-This is my first project that I gave myself for my future goal of becoming a software engineer. Even though C++ is not really used in software engineering I thought a chess engine would be a good way to start coding serious projects.
+This is my first project that I gave myself. Even though C++ is not really used in software engineering I thought a chess engine would be a good way to start coding serious projects.
