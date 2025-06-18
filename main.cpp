@@ -98,6 +98,69 @@ void printKing(std::bitset<64>& whiteKing, std::bitset<64>& blackKing)
 }
 
 
+void printFullBoard(const std::bitset<64>& whitePawns, const std::bitset<64>& blackPawns,
+                    const std::bitset<64>& whiteRooks, const std::bitset<64>& blackRooks,
+                    const std::bitset<64>& whiteKnights, const std::bitset<64>& blackKnights,
+                    const std::bitset<64>& whiteBishops, const std::bitset<64>& blackBishops,
+                    const std::bitset<64>& whiteQueen, const std::bitset<64>& blackQueen,
+                    const std::bitset<64>& whiteKing, const std::bitset<64>& blackKing)
+{
+    for (int row = 7; row >= 0; --row) {
+        for (int col = 0; col < 8; ++col) {
+            int index = row * 8 + col;
+            char piece = '.';
+
+            if (whitePawns[index]) piece = 'P';
+            else if (blackPawns[index]) piece = 'p';
+            else if (whiteRooks[index]) piece = 'R';
+            else if (blackRooks[index]) piece = 'r';
+            else if (whiteKnights[index]) piece = 'N';
+            else if (blackKnights[index]) piece = 'n';
+            else if (whiteBishops[index]) piece = 'B';
+            else if (blackBishops[index]) piece = 'b';
+            else if (whiteQueen[index]) piece = 'Q';
+            else if (blackQueen[index]) piece = 'q';
+            else if (whiteKing[index]) piece = 'K';
+            else if (blackKing[index]) piece = 'k';
+
+            std::cout << piece;
+        }
+        std::cout << '\n';
+    }
+}
+
+std::bitset<64> getAllPieces(
+     const std::bitset<64>& whitePawns, const std::bitset<64>& whiteRooks,
+    const std::bitset<64>& whiteKnights, const std::bitset<64>& whiteBishops,
+    const std::bitset<64>& whiteQueen, const std::bitset<64>& whiteKing,
+    const std::bitset<64>& blackPawns, const std::bitset<64>& blackRooks,
+    const std::bitset<64>& blackKnights, const std::bitset<64>& blackBishops,
+    const std::bitset<64>& blackQueen, const std::bitset<64>& blackKing)
+
+    {
+        return whitePawns | whiteRooks | whiteKnights | whiteBishops | whiteQueen | whiteKing |
+           blackPawns | blackRooks | blackKnights | blackBishops | blackQueen | blackKing;
+    }
+
+
+std::bitset<64> getWhitePieces(
+    const std::bitset<64>& whitePawns, const std::bitset<64>& whiteRooks,
+    const std::bitset<64>& whiteKnights, const std::bitset<64>& whiteBishops,
+    const std::bitset<64>& whiteQueen, const std::bitset<64>& whiteKing)
+    {
+        return whitePawns | whiteRooks | whiteKnights | whiteBishops | whiteQueen | whiteKing;
+    }
+
+std::bitset<64> getBlackPieces(
+    const std::bitset<64>& blackPawns, const std::bitset<64>& blackRooks,
+    const std::bitset<64>& blackKnights, const std::bitset<64>& blackBishops,
+    const std::bitset<64>& blackQueen, const std::bitset<64>& blackKing)
+    {
+        return blackPawns | blackRooks | blackKnights | blackBishops | blackQueen | blackKing;
+    }
+
+
+
 std::bitset<64> generateKnightMoves(std::bitset<64> knights)
  {
     std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
@@ -120,6 +183,53 @@ std::bitset<64> generateKnightMoves(std::bitset<64> knights)
     return result;
  }
 
+std::bitset<64> generateWhitePawnCaptures(std::bitset<64> whitePawns, std::bitset<64> blackPieces)
+{
+    std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
+    std::bitset<64> notHFile = ~std::bitset<64>(0x8080808080808080ULL);
+
+    std::bitset<64> capturesLeft = (whitePawns & notAFile) << 7;
+    std::bitset<64> capturesRight = (whitePawns & notHFile) << 9;
+
+    return (capturesLeft | capturesRight) & blackPieces;
+}
+
+std::bitset<64> generateBlackPawnCaptures(std::bitset<64> blackPawns, std::bitset<64> whitePieces)
+{
+    std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
+    std::bitset<64> notHFile = ~std::bitset<64>(0x8080808080808080ULL);
+
+    std::bitset<64> capturesLeft = (blackPawns & notHFile) >> 7;
+    std::bitset<64> capturesRight = (blackPawns & notAFile) >> 9;
+
+    return (capturesLeft | capturesRight) & whitePieces;
+}
+
+std::bitset<64> generateWhitePawnMoves(std::bitset<64> whitePawns, std::bitset<64> blackPieces, std::bitset<64> allPieces)
+ {
+    std::bitset<64> rank2 = (0x000000000000FF00ULL);
+
+    std::bitset<64> oneStep = (whitePawns << 8) & ~allPieces;
+    std::bitset<64> twoStep = ((whitePawns & rank2) << 8) & ~allPieces;
+    twoStep = (twoStep << 8) & ~allPieces;
+
+    std::bitset<64> captures = generateWhitePawnCaptures(whitePawns, blackPieces);
+
+    return oneStep | twoStep | captures;
+ }
+
+std::bitset<64> generateBlackPawnMoves(std::bitset<64> blackPawns, std::bitset<64> whitePieces, std::bitset<64> allPieces)
+ {
+    std::bitset<64> rank7 = (0x00FF000000000000ULL);
+
+    std::bitset<64> oneStep = (blackPawns >> 8) & ~allPieces;
+    std::bitset<64> twoStep = ((blackPawns & rank7) >> 8) & ~allPieces;
+    twoStep = (twoStep >> 8) & ~allPieces;
+
+    std::bitset<64> captures = generateBlackPawnCaptures(blackPawns, whitePieces);
+
+    return oneStep | twoStep | captures;
+ }
 
  int notationToIndex(const std::string& notation)
  {
@@ -147,7 +257,15 @@ std::bitset<64> generateKnightMoves(std::bitset<64> knights)
     return std::string (1, file) + rank;
 }
 
-bool makeMove(std::string move, std::bitset<64>& whiteKnights, std::bitset<64>& blackKnights, bool whiteToMove)
+bool makeMove(std::string move,
+              std::bitset<64>& whiteKnights, std::bitset<64>& blackKnights,
+              std::bitset<64>& whitePawns, std::bitset<64>& blackPawns,
+              std::bitset<64>& whiteRooks, std::bitset<64>& blackRooks,
+              std::bitset<64>& whiteBishops, std::bitset<64>& blackBishops,
+              std::bitset<64>& whiteQueen, std::bitset<64>& blackQueen,
+              std::bitset<64>& whiteKing, std::bitset<64>& blackKing,
+              std::bitset<64>& whitePieces, std::bitset<64>& blackPieces,
+              bool whiteToMove)
 {
     if (move.length() != 4) return false;
 
@@ -157,31 +275,66 @@ bool makeMove(std::string move, std::bitset<64>& whiteKnights, std::bitset<64>& 
 
     if (whiteToMove)
     {
-        if (!whiteKnights[from]) return false;
+        if (whiteKnights[from])
+        {
+            std::bitset<64> thisKnight(1ULL << from);
+            std::bitset<64> legalMoves = generateKnightMoves(thisKnight);
+            if (!legalMoves[to] || whiteKnights[to]) return false;
+            if (whitePieces[to]) return false;
 
-        std::bitset<64> thisKnight(1ULL << from);
-        std::bitset<64> legalMoves = generateKnightMoves(thisKnight);
-        if (!legalMoves[to] || whiteKnights[to]) return false;
+            blackKnights.reset(to);
+            blackPawns.reset(to);
 
-        blackKnights.reset(to);
+            whiteKnights.reset(from);
+            whiteKnights.set(to);
+            return true;
+        }
+        else if (whitePawns[from])
+        {
+            std::bitset<64> thisPawn(1ULL << from);
+            std::bitset<64> legalMoves = generateWhitePawnMoves(thisPawn, blackPieces, getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                                            blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing));
+            if (!legalMoves[to] || whitePawns[to]) return false;
 
-        whiteKnights.reset(from);
-        whiteKnights.set(to);
-        return true;
+            blackKnights.reset(to);
+            blackPawns.reset(to);
+
+            whitePawns.reset(from);
+            whitePawns.set(to);
+            return true;
+        }
     }
     else
     {
-        if (!blackKnights[from]) return false;
+        if (blackKnights[from])
+        {
 
-        std::bitset<64> thisKnight(1ULL << from);
-        std::bitset<64> legalMoves = generateKnightMoves(thisKnight);
-        if (!legalMoves[to] || blackKnights[to]) return false;
+            std::bitset<64> thisKnight(1ULL << from);
+            std::bitset<64> legalMoves = generateKnightMoves(thisKnight);
+            if (!legalMoves[to] || blackKnights[to]) return false;
+            if (blackPieces[to]) return false;
 
-        whiteKnights.reset(to);
+            whiteKnights.reset(to);
+            whitePawns.reset(to);
+  
+            blackKnights.reset(from);
+            blackKnights.set(to);
+            return true;
+        }
+        else if (blackPawns[from])
+        {
+            std::bitset<64> thisPawn(1ULL << from);
+            std::bitset<64> legalMoves = generateBlackPawnMoves(thisPawn, whitePieces, getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                                            blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing));
+            if (!legalMoves[to] || blackPawns[to]) return false;
 
-        blackKnights.reset(from);
-        blackKnights.set(to);
-        return true;
+            whiteKnights.reset(to);
+            whitePawns.reset(to);
+  
+            blackPawns.reset(from);
+            blackPawns.set(to);
+            return true;
+        }
     }
 
 
@@ -204,23 +357,38 @@ int main()
     std::bitset<64> blackQueen(1ULL << 59);
     std::bitset<64> blackKing(1ULL << 60);
 
+    std::bitset<64> allPieces = getAllPieces(  whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+    blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+    std::bitset<64> whitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+    std::bitset<64> blackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
     bool whiteToMove = true;
 
     std::string move;
 
     while (true)
     {
-        printKnights(whiteKnights, blackKnights);
+        printFullBoard(whitePawns, blackPawns, whiteRooks, blackRooks,
+               whiteKnights, blackKnights, whiteBishops, blackBishops,
+               whiteQueen, blackQueen, whiteKing, blackKing);
 
         std::cout << (whiteToMove ? "White" : "Black") << " to move:\n";
         std::cin >> move;
 
         if (move == "exit") break;
 
-        bool success = makeMove(move, whiteKnights, blackKnights, whiteToMove);
+        bool success = makeMove(move, whiteKnights, blackKnights, whitePawns, blackPawns,
+                        whiteRooks, blackRooks, whiteBishops, blackBishops,
+                        whiteQueen, blackQueen, whiteKing, blackKing, whitePieces, blackPieces,
+                        whiteToMove);
 
         if (success)
         {
+            whitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            blackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            allPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                              blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
             whiteToMove = !whiteToMove;
             std::cout << "successful move\n";
         }
