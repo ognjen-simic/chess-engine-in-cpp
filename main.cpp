@@ -335,6 +335,12 @@ std::bitset<64> generateKingMoves(int square, std::bitset<64> ownPieces, std::bi
     return std::string (1, file) + rank;
 }
 
+bool whiteCanCastleKingside = true;
+bool whiteCanCastleQueenside = true;
+bool blackCanCastleKingside = true;
+bool blackCanCastleQueenside = true;
+int en_passant = -1;
+
 bool makeMove(std::string move,
               std::bitset<64>& whiteKnights, std::bitset<64>& blackKnights,
               std::bitset<64>& whitePawns, std::bitset<64>& blackPawns,
@@ -373,10 +379,26 @@ bool makeMove(std::string move,
         }
         else if (whitePawns[from])
         {
+            if (to == en_passant && to / 8 == 5)
+            {
+                blackPawns.reset(to - 8);
+                whitePawns.reset(from);
+                whitePawns.set(to);
+                return true;
+            }
+
             std::bitset<64> thisPawn(1ULL << from);
-            std::bitset<64> legalMoves = generateWhitePawnMoves(thisPawn, blackPieces, getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                                            blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing));
+            std::bitset<64> legalMoves = generateWhitePawnMoves(thisPawn, blackPieces, allPieces);
             if (!legalMoves[to] || whitePawns[to]) return false;
+
+            if (from / 8 == 1 && to / 8 == 3)
+            {
+                en_passant = from + 8;
+            }
+            else
+            {
+                en_passant = -1;
+            }
 
             blackKnights.reset(to);
             blackPawns.reset(to);
@@ -394,6 +416,8 @@ bool makeMove(std::string move,
             std::bitset<64> legalMoves = generateRookMoves(from, whitePieces, allPieces);
             if (!legalMoves[to] || whiteRooks[to]) return false;
             if (whitePieces[to]) return false;
+            if (from == notationToIndex("a1")) whiteCanCastleQueenside = false;
+            else if (from == notationToIndex("h1")) whiteCanCastleKingside = false;
 
             blackKnights.reset(to);
             blackPawns.reset(to);
@@ -442,6 +466,33 @@ bool makeMove(std::string move,
         }
         else if (whiteKing[from])
         {
+            if (to == notationToIndex("g1") && whiteCanCastleKingside)
+            {
+                if (!allPieces[notationToIndex("f1")] && !allPieces[notationToIndex("g1")])
+                {
+                    whiteKing.reset(from);
+                    whiteKing.set(to);
+                    whiteRooks.reset(notationToIndex("h1"));
+                    whiteRooks.set(notationToIndex("f1"));
+                    whiteCanCastleKingside = false;
+                    whiteCanCastleQueenside = false;
+                    return true;
+                }
+            }
+            else if (to == notationToIndex("c1") && whiteCanCastleQueenside)
+            {
+                if (!allPieces[notationToIndex("b1")] && !allPieces[notationToIndex("c1")] && !allPieces[notationToIndex("d1")])
+                {
+                    whiteKing.reset(from);
+                    whiteKing.set(to);
+                    whiteRooks.reset(notationToIndex("a1"));
+                    whiteRooks.set(notationToIndex("d1"));
+                    whiteCanCastleKingside = false;
+                    whiteCanCastleQueenside = false;
+                    return true;
+                }
+            }
+
             std::bitset<64> legalMoves = generateKingMoves(from, whitePieces, allPieces);
             if (!legalMoves[to] || whiteKing[to]) return false;
             if (whitePieces[to]) return false;
@@ -455,6 +506,10 @@ bool makeMove(std::string move,
 
             whiteKing.reset(from);
             whiteKing.set(to);
+
+            bool whiteCanCastleKingside = false;
+            bool whiteCanCastleQueenside = false;
+
             return true;
         }
     }
@@ -481,10 +536,25 @@ bool makeMove(std::string move,
         }
         else if (blackPawns[from])
         {
+            if (to == en_passant && to / 8 == 2)
+            {
+                whitePawns.reset(to + 8);
+                blackPawns.reset(from);
+                blackPawns.set(to);
+            }
+
             std::bitset<64> thisPawn(1ULL << from);
-            std::bitset<64> legalMoves = generateBlackPawnMoves(thisPawn, whitePieces, getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                                            blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing));
+            std::bitset<64> legalMoves = generateBlackPawnMoves(thisPawn, whitePieces, allPieces);
             if (!legalMoves[to] || blackPawns[to]) return false;
+
+            if (from / 8 == 6 && to / 8 == 4)
+            {
+                en_passant = from - 8;
+            }
+            else
+            {
+                en_passant = -1;
+            }
 
             whiteKnights.reset(to);
             whitePawns.reset(to);
@@ -502,6 +572,8 @@ bool makeMove(std::string move,
             std::bitset<64> legalMoves = generateRookMoves(from, blackPieces, allPieces);
             if (!legalMoves[to] || blackRooks[to]) return false;
             if (blackPieces[to]) return false;
+            if (from == notationToIndex("a8")) blackCanCastleQueenside = false;
+            else if (from == notationToIndex("h8")) blackCanCastleKingside = false;
 
             whiteKnights.reset(to);
             whitePawns.reset(to);
@@ -550,6 +622,35 @@ bool makeMove(std::string move,
         }
         else if (blackKing[from])
         {
+            if (to ==  notationToIndex("g8") && blackCanCastleKingside)
+            {
+                if (!allPieces[notationToIndex("f8")] && !allPieces[notationToIndex("g8")])
+                {
+                    blackKing.reset(from);
+                    blackKing.set(to);
+                    blackRooks.reset(notationToIndex("h8"));
+                    blackRooks.set(notationToIndex("f8"));
+                    blackCanCastleKingside = false;
+                    blackCanCastleQueenside = false;
+
+                    return true;
+                }
+            }
+            else if (to ==  notationToIndex("c8") && blackCanCastleQueenside)
+            {
+                if (!allPieces[notationToIndex("b8")] && !allPieces[notationToIndex("c8")] && !allPieces[notationToIndex("d8")])
+                {
+                    blackKing.reset(from);
+                    blackKing.set(to);
+                    blackRooks.reset(notationToIndex("a8"));
+                    blackRooks.set(notationToIndex("d8"));
+                    blackCanCastleKingside = false;
+                    blackCanCastleQueenside = false;
+
+                    return true;
+                }
+            }
+
             std::bitset<64> legalMoves = generateKingMoves(from, blackPieces, allPieces);
             if (!legalMoves[to] || blackKing[to]) return false;
             if (blackPieces[to]) return false;
@@ -563,6 +664,10 @@ bool makeMove(std::string move,
   
             blackKing.reset(from);
             blackKing.set(to);
+
+            bool blackCanCastleKingside = false;
+            bool blackCanCastleQueenside = false;
+
             return true;
         }
     }
