@@ -5,14 +5,14 @@ This is a chess engine I'm currently building in C++ as a personal learning proj
 ## Current Features
 
 - Bitboard-based representation for each piece type
-- Legal move generation for knights, pawns and rooks
+- Legal move generation for every piece
 - User input using standard algebraic notation (e.g. g1f3)
 - Capturing the opponent’s pieces
 - Turn switching between White and Black
 
 ## Upcoming Features
 
-- Legal move generation for bishops, queen, and the king
+- Castling logic
 - Check, checkmate, and stalemate detection
 - Minimax algorithm with a basic evaluation function
 - UCI connection to Lichess for playing against other bots

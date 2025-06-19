@@ -257,6 +257,59 @@ std::bitset<64> generateRookMoves(int square, std::bitset<64> ownPieces, std::bi
     return moves;
 }
 
+std::bitset<64> generateBishopMoves(int square, std::bitset<64> ownPieces, std::bitset<64> allPieces)
+{
+    std::bitset<64> moves;
+    int directions[4] = {9, 7, -9, -7};
+
+    for (int d = 0; d < 4; ++d)
+    {
+        int sq = square;
+        while (true)
+        {
+            int nextSq = sq + directions[d];
+
+            if ((directions[d] == 9 || directions[d] == -7) && nextSq % 8 == 0) break;
+            if ((directions[d] == -9 || directions[d] == 7) && sq % 8 == 0) break;
+
+            if (nextSq < 0 || nextSq >= 64) break;
+            if (ownPieces[nextSq]) break;
+            moves.set(nextSq);
+            if (allPieces[nextSq]) break;
+
+            sq = nextSq;
+        }
+    }
+    return moves;
+}
+
+std::bitset<64> generateQueenMoves(int square, std::bitset<64> ownPieces, std::bitset<64> allPieces)
+{
+    return (generateRookMoves(square, ownPieces, allPieces) | generateBishopMoves(square, ownPieces, allPieces));
+}
+
+std::bitset<64> generateKingMoves(int square, std::bitset<64> ownPieces, std::bitset<64> allPieces)
+{
+    std::bitset<64> moves;
+    int directions[8] = {1, -1, 8, -8, 9, -9, 7, -7};
+
+    for (int d = 0; d < 8; ++d)
+    {
+        int nextSq = square + directions[d];
+
+        if (nextSq < 0 || nextSq >= 64) continue;
+
+        int fromFile = square % 8;
+        int toFile = nextSq % 8;
+        if (std::abs(fromFile - toFile) > 1) continue;
+
+        if (ownPieces[nextSq]) continue;
+
+        moves.set(nextSq);
+    }
+    return moves;
+}
+
  int notationToIndex(const std::string& notation)
  {
     if (notation.length() != 2) return -1;
@@ -353,8 +406,60 @@ bool makeMove(std::string move,
             whiteRooks.set(to);
             return true;
         }
+        else if (whiteBishops[from])
+        {
+            std::bitset<64> legalMoves = generateBishopMoves(from, whitePieces, allPieces);
+            if (!legalMoves[to] || whiteBishops[to]) return false;
+            if (whitePieces[to]) return false;
+
+            blackKnights.reset(to);
+            blackPawns.reset(to);
+            blackRooks.reset(to);
+            blackBishops.reset(to);
+            blackQueen.reset(to);
+            blackKing.reset(to);
+
+            whiteBishops.reset(from);
+            whiteBishops.set(to);
+            return true;
+        }
+        else if (whiteQueen[from])
+        {
+            std::bitset<64> legalMoves = generateQueenMoves(from, whitePieces, allPieces);
+            if (!legalMoves[to] || whiteQueen[to]) return false;
+            if (whitePieces[to]) return false;
+
+            blackKnights.reset(to);
+            blackPawns.reset(to);
+            blackRooks.reset(to);
+            blackBishops.reset(to);
+            blackQueen.reset(to);
+            blackKing.reset(to);
+
+            whiteQueen.reset(from);
+            whiteQueen.set(to);
+            return true;
+        }
+        else if (whiteKing[from])
+        {
+            std::bitset<64> legalMoves = generateKingMoves(from, whitePieces, allPieces);
+            if (!legalMoves[to] || whiteKing[to]) return false;
+            if (whitePieces[to]) return false;
+
+            blackKnights.reset(to);
+            blackPawns.reset(to);
+            blackRooks.reset(to);
+            blackBishops.reset(to);
+            blackQueen.reset(to);
+            blackKing.reset(to);
+
+            whiteKing.reset(from);
+            whiteKing.set(to);
+            return true;
+        }
     }
-    else
+    
+    else 
     {
         if (blackKnights[from])
         {
@@ -407,6 +512,57 @@ bool makeMove(std::string move,
   
             blackRooks.reset(from);
             blackRooks.set(to);
+            return true;
+        }
+        else if (blackBishops[from])
+        {
+            std::bitset<64> legalMoves = generateBishopMoves(from, blackPieces, allPieces);
+            if (!legalMoves[to] || blackBishops[to]) return false;
+            if (blackPieces[to]) return false;
+
+            whiteKnights.reset(to);
+            whitePawns.reset(to);
+            whiteRooks.reset(to);
+            whiteBishops.reset(to);
+            whiteQueen.reset(to);
+            whiteKing.reset(to);
+  
+            blackBishops.reset(from);
+            blackBishops.set(to);
+            return true;
+        }
+        else if (blackQueen[from])
+        {
+            std::bitset<64> legalMoves = generateQueenMoves(from, blackPieces, allPieces);
+            if (!legalMoves[to] || blackQueen[to]) return false;
+            if (blackPieces[to]) return false;
+
+            whiteKnights.reset(to);
+            whitePawns.reset(to);
+            whiteRooks.reset(to);
+            whiteBishops.reset(to);
+            whiteQueen.reset(to);
+            whiteKing.reset(to);
+  
+            blackQueen.reset(from);
+            blackQueen.set(to);
+            return true;
+        }
+        else if (blackKing[from])
+        {
+            std::bitset<64> legalMoves = generateKingMoves(from, blackPieces, allPieces);
+            if (!legalMoves[to] || blackKing[to]) return false;
+            if (blackPieces[to]) return false;
+
+            whiteKnights.reset(to);
+            whitePawns.reset(to);
+            whiteRooks.reset(to);
+            whiteBishops.reset(to);
+            whiteQueen.reset(to);
+            whiteKing.reset(to);
+  
+            blackKing.reset(from);
+            blackKing.set(to);
             return true;
         }
     }
