@@ -335,6 +335,63 @@ std::bitset<64> generateKingMoves(int square, std::bitset<64> ownPieces, std::bi
     return std::string (1, file) + rank;
 }
 
+std::bitset<64> generateWhiteAttacks(std::bitset<64> whiteKnights, std::bitset<64> whitePawns, std::bitset<64> whiteBishops,
+     std::bitset<64> whiteRooks, std::bitset<64> whiteQueen, std::bitset<64> whiteKing, std::bitset<64> ownPieces, std::bitset<64> allPieces,
+     std::bitset<64> whitePieces, std::bitset<64> blackPieces)
+{
+    std::bitset<64> attacks;
+
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        if (whiteKnights[sq])
+        {
+            attacks |= generateKnightMoves(sq);
+        }
+    }
+
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        if (whitePawns[sq])
+        {
+            attacks |= generateWhitePawnCaptures(whitePawns, blackPieces);
+        }
+    }
+
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        if (whiteBishops[sq])
+        {
+            attacks |= generateBishopMoves(sq, ownPieces, allPieces);
+        }
+    }
+
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        if (whiteRooks[sq])
+        {
+            attacks |= generateRookMoves(sq, ownPieces, allPieces);
+        }
+    }
+
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        if (whiteQueen[sq])
+        {
+            attacks |= generateQueenMoves(sq, ownPieces, allPieces);
+        }
+    }
+
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        if (whiteKing[sq])
+        {
+            attacks |= generateKingMoves(sq, ownPieces, allPieces);
+        }
+    }
+
+    return attacks;
+}
+
 bool whiteCanCastleKingside = true;
 bool whiteCanCastleQueenside = true;
 bool blackCanCastleKingside = true;
@@ -349,7 +406,7 @@ bool makeMove(std::string move,
               std::bitset<64>& whiteQueen, std::bitset<64>& blackQueen,
               std::bitset<64>& whiteKing, std::bitset<64>& blackKing,
               std::bitset<64>& whitePieces, std::bitset<64>& blackPieces,
-              bool whiteToMove, std::bitset<64> allPieces)
+              bool whiteToMove, std::bitset<64> allPieces, std::bitset<64> ownPieces)
 {
     if (move.length() != 4) return false;
 
@@ -651,7 +708,8 @@ bool makeMove(std::string move,
                 }
             }
 
-            std::bitset<64> legalMoves = generateKingMoves(from, blackPieces, allPieces);
+            std::bitset<64> legalMoves = generateKingMoves(from, blackPieces, allPieces) & ~generateWhiteAttacks(whiteKnights, whitePawns,
+                 whiteBishops, whiteRooks, whiteQueen, whiteKing, ownPieces, allPieces, whitePieces, blackPieces);
             if (!legalMoves[to] || blackKing[to]) return false;
             if (blackPieces[to]) return false;
 
@@ -719,7 +777,7 @@ int main()
         bool success = makeMove(move, whiteKnights, blackKnights, whitePawns, blackPawns,
                         whiteRooks, blackRooks, whiteBishops, blackBishops,
                         whiteQueen, blackQueen, whiteKing, blackKing, whitePieces, blackPieces,
-                        whiteToMove, allPieces);
+                        whiteToMove, allPieces, ownPieces);
 
         if (success)
         {
