@@ -1,6 +1,7 @@
 #include <bitset>
 #include <iostream>
 #include <string>
+#include <map>
 
 void printPawns(std::bitset<64>& whitePawns, std::bitset<64>& blackPawns)
 {
@@ -419,6 +420,77 @@ std::bitset<64> generateBlackAttacks(std::bitset<64> blackKnights, std::bitset<6
     return attacks;
 }
 
+std::map<int, std::bitset<64>> getPinnedPieces(
+    bool whiteToMove,
+    const std::bitset<64>& whiteKing, const std::bitset<64>& blackKing,
+    const std::bitset<64>& whitePieces, const std::bitset<64>& blackPieces,
+    const std::bitset<64>& whiteBishops, const std::bitset<64>& whiteRooks, const std::bitset<64>& whiteQueen,
+    const std::bitset<64>& blackBishops, const std::bitset<64>& blackRooks, const std::bitset<64>& blackQueen,
+    const std::bitset<64>& allPieces)
+{
+    int kingSquare = (whiteToMove ? whiteKing : blackKing)._Find_first();
+    std::bitset<64> enemyBishops = whiteToMove ? blackBishops : whiteBishops;
+    std::bitset<64> enemyRooks = whiteToMove ? blackRooks : whiteRooks;
+    std::bitset<64> enemyQueens = whiteToMove ? blackQueen : whiteQueen;
+    std::bitset<64> ownPieces = whiteToMove ? whitePieces : blackPieces;
+
+    std::bitset<64> pinnedPieces;
+    std::bitset<64> lineOfMovement;
+    std::map<int, std::bitset<64>> pinnedLines;
+
+    int directions[8] = {1, -1, 8, -8, 7, -7, 9, -9};
+
+    for (int d = 0; d < 8; ++d)
+    {
+        int dir = directions[d];
+        int sq = kingSquare;
+        bool foundOwn = false;
+        int potentialPinned = -1;
+
+        std::bitset<64> potentialLine;
+
+        while (true)
+        {
+            sq += dir;
+
+            if (sq < 0 || sq >= 64) break;
+
+            int prevFile = (sq - dir) % 8;
+            int currFile = sq % 8;
+            if (abs(currFile - prevFile) > 1) break;
+
+            potentialLine.set(sq);
+
+            if (ownPieces[sq])
+            {
+                if (!foundOwn)
+                {
+                    foundOwn = true;
+                    potentialPinned = sq;
+                }
+                else break; 
+            }
+            else if (enemyQueens[sq] ||
+                     (enemyBishops[sq] && (dir == 7 || dir == -7 || dir == 9 || dir == -9)) ||
+                     (enemyRooks[sq] && (dir == 1 || dir == -1 || dir == 8 || dir == -8)))
+            {
+                if (foundOwn && potentialPinned != -1)
+                {
+                    potentialLine.reset(potentialPinned);
+                    pinnedLines[potentialPinned] = potentialLine;
+                }
+                break;
+            }
+            else if (allPieces[sq])
+            {
+                break;
+            }
+        }
+    }
+
+    return pinnedLines;
+}
+
 bool whiteCanCastleKingside = true;
 bool whiteCanCastleQueenside = true;
 bool blackCanCastleKingside = true;
@@ -436,10 +508,23 @@ bool makeMove(std::string move,
               bool whiteToMove, std::bitset<64>& allPieces, std::bitset<64>& ownPieces)
 {
     if (move.length() != 4) return false;
-
     int from = notationToIndex(move.substr(0, 2));
     int to = notationToIndex(move.substr(2, 2));
     if (from == -1 || to == -1) return false;
+
+    std::map<int, std::bitset<64>> pinnedLines = getPinnedPieces(
+    whiteToMove,
+    whiteKing, blackKing,
+    whitePieces, blackPieces,
+    whiteBishops, whiteRooks, whiteQueen,
+    blackBishops, blackRooks, blackQueen,
+    allPieces);
+
+if (pinnedLines.count(from))
+{
+    if (!pinnedLines[from][to])
+        return false;
+}
 
     if (whiteToMove)
     {
