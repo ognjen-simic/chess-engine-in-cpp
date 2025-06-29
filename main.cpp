@@ -528,10 +528,14 @@ bool makeMove(std::string move,
               std::bitset<64>& whitePieces, std::bitset<64>& blackPieces,
               bool whiteToMove, std::bitset<64>& allPieces, std::bitset<64>& ownPieces)
 {
-    if (move.length() != 4) return false;
+    if (move.length() != 4 && move.length() != 5) return false;
+
     int from = notationToIndex(move.substr(0, 2));
     int to = notationToIndex(move.substr(2, 2));
     if (from == -1 || to == -1) return false;
+
+    bool isPromotion = move.length() == 5;
+    char promotionPiece = isPromotion ? move[4] : '\0';
 
     std::map<int, std::bitset<64>> pinnedLines = getPinnedPieces(
     whiteToMove,
@@ -596,6 +600,12 @@ if (pinnedLines.count(from))
                 return true;
             }
 
+            if (to / 8 == 7 && move.length() != 5) return false;
+            else if (to / 8 == 7 && move.length() ==5)
+            {
+                if (move[4] != 'q' && move[4] != 'r' && move[4] != 'b' && move[4] != 'k') return false;
+            }
+
             std::bitset<64> thisPawn(1ULL << from);
             std::bitset<64> legalMoves = generateWhitePawnMoves(thisPawn, blackPieces, allPieces);
             if (!legalMoves[to] || whitePawns[to]) return false;
@@ -620,7 +630,21 @@ if (pinnedLines.count(from))
             blackKing.reset(to);
 
             whitePawns.reset(from);
-            whitePawns.set(to);
+            if (isPromotion && to / 8 == 7)
+            {
+                switch (promotionPiece)
+                {
+                    case 'q': whiteQueen.set(to); break;
+                    case 'r': whiteRooks.set(to); break;
+                    case 'b': whiteBishops.set(to); break;
+                    case 'k': whiteKnights.set(to); break;
+                    default: return false;
+                }
+            }
+            else
+            {
+                whitePawns.set(to);
+            }
 
             std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
             std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
@@ -860,6 +884,12 @@ if (pinnedLines.count(from))
                 blackPawns.set(to);
             }
 
+            if (to / 8 == 0 && move.length() != 5) return false;
+            else if (to / 8 == 0 && move.length() ==5)
+            {
+                if (move[4] != 'q' || move[4] != 'r' || move[4] != 'b' || move[4] != 'k') return false;
+            }
+
             std::bitset<64> thisPawn(1ULL << from);
             std::bitset<64> legalMoves = generateBlackPawnMoves(thisPawn, whitePieces, allPieces);
             if (!legalMoves[to] || blackPawns[to]) return false;
@@ -884,7 +914,21 @@ if (pinnedLines.count(from))
             whiteKing.reset(to);
   
             blackPawns.reset(from);
-            blackPawns.set(to);
+            if (isPromotion && to / 8 == 0)
+            {
+                switch (promotionPiece)
+                {
+                    case 'q': blackQueen.set(to); break;
+                    case 'r': blackRooks.set(to); break;
+                    case 'b': blackBishops.set(to); break;
+                    case 'k': blackKnights.set(to); break;
+                    default: return false;
+                }
+            }
+            else
+            {
+                blackPawns.set(to);
+            }
 
             std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
             std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
