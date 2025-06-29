@@ -9,10 +9,11 @@ This is a chess engine I'm currently building in C++ as a personal learning proj
 - User input using standard algebraic notation (e.g. g1f3)
 - Capturing the opponent’s pieces
 - Turn switching between White and Black
+- Check detection
 
 ## Upcoming Features
 
-- Check, checkmate, and stalemate detection
+- Checkmate and stalemate detection
 - Minimax algorithm with a basic evaluation function
 - UCI connection to Lichess for playing against other bots
 

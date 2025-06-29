@@ -497,6 +497,27 @@ bool blackCanCastleKingside = true;
 bool blackCanCastleQueenside = true;
 int en_passant = -1;
 
+bool isKingInCheck(
+    bool whiteToMove,
+    const std::bitset<64>& whiteKing, const std::bitset<64>& blackKing,
+    const std::bitset<64>& whiteKnights, const std::bitset<64>& blackKnights,
+    const std::bitset<64>& whitePawns, const std::bitset<64>& blackPawns,
+    const std::bitset<64>& whiteRooks, const std::bitset<64>& blackRooks,
+    const std::bitset<64>& whiteBishops, const std::bitset<64>& blackBishops,
+    const std::bitset<64>& whiteQueen, const std::bitset<64>& blackQueen,
+    const std::bitset<64>& whitePieces, const std::bitset<64>& blackPieces,
+    const std::bitset<64>& allPieces)
+{
+    int kingIndex = whiteToMove ? whiteKing._Find_first() : blackKing._Find_first();
+
+    std::bitset<64> attackMap = whiteToMove ?
+        generateBlackAttacks(blackKnights, blackPawns, blackBishops, blackRooks, blackQueen, blackKing, whitePieces, allPieces, whitePieces, blackPieces)
+        :
+        generateWhiteAttacks(whiteKnights, whitePawns, whiteBishops, whiteRooks, whiteQueen, whiteKing, blackPieces, allPieces, whitePieces, blackPieces);
+
+    return attackMap[kingIndex];
+}
+
 bool makeMove(std::string move,
               std::bitset<64>& whiteKnights, std::bitset<64>& blackKnights,
               std::bitset<64>& whitePawns, std::bitset<64>& blackPawns,
@@ -535,6 +556,10 @@ if (pinnedLines.count(from))
             if (!legalMoves[to] || whiteKnights[to]) return false;
             if (whitePieces[to]) return false;
 
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+
+
             blackKnights.reset(to);
             blackPawns.reset(to);
             blackRooks.reset(to);
@@ -544,6 +569,21 @@ if (pinnedLines.count(from))
 
             whiteKnights.reset(from);
             whiteKnights.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (whitePawns[from])
@@ -569,6 +609,9 @@ if (pinnedLines.count(from))
                 en_passant = -1;
             }
 
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+
             blackKnights.reset(to);
             blackPawns.reset(to);
             blackRooks.reset(to);
@@ -578,6 +621,21 @@ if (pinnedLines.count(from))
 
             whitePawns.reset(from);
             whitePawns.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (whiteRooks[from])
@@ -588,6 +646,9 @@ if (pinnedLines.count(from))
             if (from == notationToIndex("a1")) whiteCanCastleQueenside = false;
             else if (from == notationToIndex("h1")) whiteCanCastleKingside = false;
 
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+
             blackKnights.reset(to);
             blackPawns.reset(to);
             blackRooks.reset(to);
@@ -597,6 +658,21 @@ if (pinnedLines.count(from))
 
             whiteRooks.reset(from);
             whiteRooks.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (whiteBishops[from])
@@ -604,6 +680,9 @@ if (pinnedLines.count(from))
             std::bitset<64> legalMoves = generateBishopMoves(from, whitePieces, allPieces);
             if (!legalMoves[to] || whiteBishops[to]) return false;
             if (whitePieces[to]) return false;
+
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
 
             blackKnights.reset(to);
             blackPawns.reset(to);
@@ -614,6 +693,21 @@ if (pinnedLines.count(from))
 
             whiteBishops.reset(from);
             whiteBishops.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (whiteQueen[from])
@@ -621,6 +715,9 @@ if (pinnedLines.count(from))
             std::bitset<64> legalMoves = generateQueenMoves(from, whitePieces, allPieces);
             if (!legalMoves[to] || whiteQueen[to]) return false;
             if (whitePieces[to]) return false;
+
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
 
             blackKnights.reset(to);
             blackPawns.reset(to);
@@ -631,6 +728,21 @@ if (pinnedLines.count(from))
 
             whiteQueen.reset(from);
             whiteQueen.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (whiteKing[from])
@@ -667,6 +779,9 @@ if (pinnedLines.count(from))
             if (!legalMoves[to] || whiteKing[to]) return false;
             if (whitePieces[to]) return false;
 
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+
             blackKnights.reset(to);
             blackPawns.reset(to);
             blackRooks.reset(to);
@@ -676,6 +791,20 @@ if (pinnedLines.count(from))
 
             whiteKing.reset(from);
             whiteKing.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
 
             whiteCanCastleKingside = false;
             whiteCanCastleQueenside = false;
@@ -693,6 +822,9 @@ if (pinnedLines.count(from))
             if (!legalMoves[to] || blackKnights[to]) return false;
             if (blackPieces[to]) return false;
 
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+
             whiteKnights.reset(to);
             whitePawns.reset(to);
             whiteRooks.reset(to);
@@ -702,6 +834,21 @@ if (pinnedLines.count(from))
   
             blackKnights.reset(from);
             blackKnights.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (blackPawns[from])
@@ -726,6 +873,9 @@ if (pinnedLines.count(from))
                 en_passant = -1;
             }
 
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+
             whiteKnights.reset(to);
             whitePawns.reset(to);
             whiteRooks.reset(to);
@@ -735,6 +885,21 @@ if (pinnedLines.count(from))
   
             blackPawns.reset(from);
             blackPawns.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (blackRooks[from])
@@ -745,6 +910,9 @@ if (pinnedLines.count(from))
             if (from == notationToIndex("a8")) blackCanCastleQueenside = false;
             else if (from == notationToIndex("h8")) blackCanCastleKingside = false;
 
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+
             whiteKnights.reset(to);
             whitePawns.reset(to);
             whiteRooks.reset(to);
@@ -754,6 +922,21 @@ if (pinnedLines.count(from))
   
             blackRooks.reset(from);
             blackRooks.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (blackBishops[from])
@@ -761,6 +944,9 @@ if (pinnedLines.count(from))
             std::bitset<64> legalMoves = generateBishopMoves(from, blackPieces, allPieces);
             if (!legalMoves[to] || blackBishops[to]) return false;
             if (blackPieces[to]) return false;
+
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
 
             whiteKnights.reset(to);
             whitePawns.reset(to);
@@ -771,6 +957,21 @@ if (pinnedLines.count(from))
   
             blackBishops.reset(from);
             blackBishops.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (blackQueen[from])
@@ -778,6 +979,9 @@ if (pinnedLines.count(from))
             std::bitset<64> legalMoves = generateQueenMoves(from, blackPieces, allPieces);
             if (!legalMoves[to] || blackQueen[to]) return false;
             if (blackPieces[to]) return false;
+
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
 
             whiteKnights.reset(to);
             whitePawns.reset(to);
@@ -788,6 +992,21 @@ if (pinnedLines.count(from))
   
             blackQueen.reset(from);
             blackQueen.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
+
             return true;
         }
         else if (blackKing[from])
@@ -826,6 +1045,9 @@ if (pinnedLines.count(from))
             if (!legalMoves[to] || blackKing[to]) return false;
             if (blackPieces[to]) return false;
 
+            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
+            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+
             whiteKnights.reset(to);
             whitePawns.reset(to);
             whiteRooks.reset(to);
@@ -835,6 +1057,20 @@ if (pinnedLines.count(from))
   
             blackKing.reset(from);
             blackKing.set(to);
+
+            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
+            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
+                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+
+            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
+                                    newWhitePieces, newBlackPieces, newAllPieces))
+                            {
+                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
+                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
+                            return false;
+                            }
 
             blackCanCastleKingside = false;
             blackCanCastleQueenside = false;
