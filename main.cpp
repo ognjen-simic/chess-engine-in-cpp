@@ -864,7 +864,7 @@ if (pinnedLines.count(from))
             std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
                                                 blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
                                     whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
                                     newWhitePieces, newBlackPieces, newAllPieces))
                             {
@@ -935,7 +935,7 @@ if (pinnedLines.count(from))
             std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
                                                 blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
                                     whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
                                     newWhitePieces, newBlackPieces, newAllPieces))
                             {
@@ -972,7 +972,7 @@ if (pinnedLines.count(from))
             std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
                                                 blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
                                     whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
                                     newWhitePieces, newBlackPieces, newAllPieces))
                             {
@@ -1007,7 +1007,7 @@ if (pinnedLines.count(from))
             std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
                                                 blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
                                     whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
                                     newWhitePieces, newBlackPieces, newAllPieces))
                             {
@@ -1042,7 +1042,7 @@ if (pinnedLines.count(from))
             std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
                                                 blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
                                     whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
                                     newWhitePieces, newBlackPieces, newAllPieces))
                             {
@@ -1107,7 +1107,7 @@ if (pinnedLines.count(from))
             std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
                                                 blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
+            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
                                     whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
                                     newWhitePieces, newBlackPieces, newAllPieces))
                             {
