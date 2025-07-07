@@ -3,18 +3,15 @@
 #include <bitset>
 #include <sstream>
 
-bool makeMove(
-    const std::string& move,
-    std::bitset<64>& whiteKnights, std::bitset<64>& blackKnights,
-    std::bitset<64>& whitePawns, std::bitset<64>& blackPawns,
-    std::bitset<64>& whiteRooks, std::bitset<64>& blackRooks,
-    std::bitset<64>& whiteBishops, std::bitset<64>& blackBishops,
-    std::bitset<64>& whiteQueen, std::bitset<64>& blackQueen,
-    std::bitset<64>& whiteKing, std::bitset<64>& blackKing,
-    std::bitset<64>& whitePieces, std::bitset<64>& blackPieces,
-    bool whiteToMove,
-    std::bitset<64>& allPieces,
-    std::bitset<64>& ownPieces);
+bool makeMove(std::string move,
+              std::bitset<64>& whiteKnights, std::bitset<64>& blackKnights,
+              std::bitset<64>& whitePawns, std::bitset<64>& blackPawns,
+              std::bitset<64>& whiteRooks, std::bitset<64>& blackRooks,
+              std::bitset<64>& whiteBishops, std::bitset<64>& blackBishops,
+              std::bitset<64>& whiteQueen, std::bitset<64>& blackQueen,
+              std::bitset<64>& whiteKing, std::bitset<64>& blackKing,
+              std::bitset<64>& whitePieces, std::bitset<64>& blackPieces,
+              bool whiteToMove, std::bitset<64>& allPieces, std::bitset<64>& ownPieces);
 
 std::bitset<64> getWhitePieces(const std::bitset<64>& whitePawns,
                                const std::bitset<64>& whiteRooks,
