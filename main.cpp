@@ -2,6 +2,59 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include "uci.h"
+
+struct Board
+{
+    std::bitset<64> whitePawns;
+    std::bitset<64> whiteKnights;
+    std::bitset<64> whiteBishops;
+    std::bitset<64> whiteRooks;
+    std::bitset<64> whiteQueen;
+    std::bitset<64> whiteKing;
+
+    std::bitset<64> blackPawns;
+    std::bitset<64> blackKnights;
+    std::bitset<64> blackBishops;
+    std::bitset<64> blackRooks;
+    std::bitset<64> blackQueen;
+    std::bitset<64> blackKing;
+    
+    bool whiteCanCastleKingside = true;
+    bool whiteCanCastleQueenside = true;
+    bool blackCanCastleKingside = true;
+    bool blackCanCastleQueenside = true;
+    bool whiteToMove = true;
+    int en_passant = -1;
+
+    std::bitset<64> getWhitePieces() const
+    {
+        return whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueen | whiteKing;
+    }
+
+    std::bitset<64> getBlackPieces() const
+    {
+        return blackPawns | blackKnights | blackBishops | blackRooks | blackQueen | blackKing;
+    }
+
+    std::bitset<64> getAllPieces() const
+    {
+        return getWhitePieces() | getBlackPieces();
+    }
+
+    std::bitset<64> getOwnPieces(bool whiteToMove) const
+    {
+        return whiteToMove 
+        ? whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueen | whiteKing
+        : blackPawns | blackKnights | blackBishops |blackRooks | blackQueen | blackKing;
+    }
+
+    std::bitset<64> getOpponentPieces(bool whiteToMove) const {
+    return whiteToMove
+        ? blackPawns | blackKnights | blackBishops | blackRooks | blackQueen | blackKing
+        : whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueen | whiteKing;
+}
+};
 
 void printPawns(std::bitset<64>& whitePawns, std::bitset<64>& blackPawns)
 {
@@ -99,68 +152,31 @@ void printKing(std::bitset<64>& whiteKing, std::bitset<64>& blackKing)
 }
 
 
-void printFullBoard(const std::bitset<64>& whitePawns, const std::bitset<64>& blackPawns,
-                    const std::bitset<64>& whiteRooks, const std::bitset<64>& blackRooks,
-                    const std::bitset<64>& whiteKnights, const std::bitset<64>& blackKnights,
-                    const std::bitset<64>& whiteBishops, const std::bitset<64>& blackBishops,
-                    const std::bitset<64>& whiteQueen, const std::bitset<64>& blackQueen,
-                    const std::bitset<64>& whiteKing, const std::bitset<64>& blackKing)
+void printFullBoard(const Board& board)
 {
     for (int row = 7; row >= 0; --row) {
         for (int col = 0; col < 8; ++col) {
             int index = row * 8 + col;
             char piece = '.';
 
-            if (whitePawns[index]) piece = 'P';
-            else if (blackPawns[index]) piece = 'p';
-            else if (whiteRooks[index]) piece = 'R';
-            else if (blackRooks[index]) piece = 'r';
-            else if (whiteKnights[index]) piece = 'N';
-            else if (blackKnights[index]) piece = 'n';
-            else if (whiteBishops[index]) piece = 'B';
-            else if (blackBishops[index]) piece = 'b';
-            else if (whiteQueen[index]) piece = 'Q';
-            else if (blackQueen[index]) piece = 'q';
-            else if (whiteKing[index]) piece = 'K';
-            else if (blackKing[index]) piece = 'k';
+            if (board.whitePawns[index]) piece = 'P';
+            else if (board.blackPawns[index]) piece = 'p';
+            else if (board.whiteRooks[index]) piece = 'R';
+            else if (board.blackRooks[index]) piece = 'r';
+            else if (board.whiteKnights[index]) piece = 'N';
+            else if (board.blackKnights[index]) piece = 'n';
+            else if (board.whiteBishops[index]) piece = 'B';
+            else if (board.blackBishops[index]) piece = 'b';
+            else if (board.whiteQueen[index]) piece = 'Q';
+            else if (board.blackQueen[index]) piece = 'q';
+            else if (board.whiteKing[index]) piece = 'K';
+            else if (board.blackKing[index]) piece = 'k';
 
             std::cout << piece;
         }
         std::cout << '\n';
     }
 }
-
-std::bitset<64> getAllPieces(
-     const std::bitset<64>& whitePawns, const std::bitset<64>& whiteRooks,
-    const std::bitset<64>& whiteKnights, const std::bitset<64>& whiteBishops,
-    const std::bitset<64>& whiteQueen, const std::bitset<64>& whiteKing,
-    const std::bitset<64>& blackPawns, const std::bitset<64>& blackRooks,
-    const std::bitset<64>& blackKnights, const std::bitset<64>& blackBishops,
-    const std::bitset<64>& blackQueen, const std::bitset<64>& blackKing)
-
-    {
-        return whitePawns | whiteRooks | whiteKnights | whiteBishops | whiteQueen | whiteKing |
-           blackPawns | blackRooks | blackKnights | blackBishops | blackQueen | blackKing;
-    }
-
-
-std::bitset<64> getWhitePieces(
-    const std::bitset<64>& whitePawns, const std::bitset<64>& whiteRooks,
-    const std::bitset<64>& whiteKnights, const std::bitset<64>& whiteBishops,
-    const std::bitset<64>& whiteQueen, const std::bitset<64>& whiteKing)
-    {
-        return whitePawns | whiteRooks | whiteKnights | whiteBishops | whiteQueen | whiteKing;
-    }
-
-std::bitset<64> getBlackPieces(
-    const std::bitset<64>& blackPawns, const std::bitset<64>& blackRooks,
-    const std::bitset<64>& blackKnights, const std::bitset<64>& blackBishops,
-    const std::bitset<64>& blackQueen, const std::bitset<64>& blackKing)
-    {
-        return blackPawns | blackRooks | blackKnights | blackBishops | blackQueen | blackKing;
-    }
-
-
 
 std::bitset<64> generateKnightMoves(std::bitset<64> knights)
  {
@@ -336,106 +352,98 @@ std::bitset<64> generateKingMoves(int square, std::bitset<64> ownPieces, std::bi
     return std::string (1, file) + rank;
 }
 
-std::bitset<64> generateWhitePawnAttacks(std::bitset<64> whitePawns)
+std::bitset<64> generateWhitePawnAttacks(const Board& board)
 {
      std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
     std::bitset<64> notHFile = ~std::bitset<64>(0x8080808080808080ULL);
 
-    std::bitset<64> capturesLeft = (whitePawns & notAFile) << 7;
-    std::bitset<64> capturesRight = (whitePawns & notHFile) << 9;
+    std::bitset<64> capturesLeft = (board.whitePawns & notAFile) << 7;
+    std::bitset<64> capturesRight = (board.whitePawns & notHFile) << 9;
 
     return (capturesLeft | capturesRight);
 }
 
-std::bitset<64> generateBlackPawnAttacks(std::bitset<64> blackPawns)
+std::bitset<64> generateBlackPawnAttacks(const Board& board)
 {
      std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
     std::bitset<64> notHFile = ~std::bitset<64>(0x8080808080808080ULL);
 
-    std::bitset<64> capturesLeft = (blackPawns & notAFile) >> 7;
-    std::bitset<64> capturesRight = (blackPawns & notHFile) >> 9;
+    std::bitset<64> capturesLeft = (board.blackPawns & notAFile) >> 7;
+    std::bitset<64> capturesRight = (board.blackPawns & notHFile) >> 9;
 
     return (capturesLeft | capturesRight);
 }
 
-std::bitset<64> generateWhiteAttacks(std::bitset<64> whiteKnights, std::bitset<64> whitePawns, std::bitset<64> whiteBishops,
-     std::bitset<64> whiteRooks, std::bitset<64> whiteQueen, std::bitset<64> whiteKing, std::bitset<64> ownPieces, std::bitset<64> allPieces,
-     std::bitset<64> whitePieces, std::bitset<64> blackPieces)
+std::bitset<64> generateWhiteAttacks(const Board& board)
 {
     std::bitset<64> attacks;
 
     for (int sq = 0; sq < 64; ++sq)
     {
-        if (whiteKnights[sq])
+        if (board.whiteKnights[sq])
         {
             attacks |= generateKnightMoves(std::bitset<64> (1ULL << sq));
         }
     }
 
-    attacks |= generateWhitePawnAttacks(whitePawns);
+    attacks |= generateWhitePawnAttacks(board);
 
     for (int sq = 0; sq < 64; ++sq)
     {
-        if (whiteBishops[sq])
-            attacks |= generateBishopMoves(sq, ownPieces, allPieces);
-        else if (whiteRooks[sq])
-            attacks |= generateRookMoves(sq, ownPieces, allPieces);
-        else if (whiteQueen[sq])
-            attacks |= generateQueenMoves(sq, ownPieces, allPieces);
-        else if (whiteKing[sq])
-            attacks |= generateKingMoves(sq, ownPieces, allPieces);
+        if (board.whiteBishops[sq])
+            attacks |= generateBishopMoves(sq, board.getOwnPieces(true), board.getAllPieces());
+        else if (board.whiteRooks[sq])
+            attacks |= generateRookMoves(sq, board.getOwnPieces(true), board.getAllPieces());
+        else if (board.whiteQueen[sq])
+            attacks |= generateQueenMoves(sq, board.getOwnPieces(true), board.getAllPieces());
+        else if (board.whiteKing[sq])
+            attacks |= generateKingMoves(sq, board.getOwnPieces(true), board.getAllPieces());
     }
 
     return attacks;
 }
 
-std::bitset<64> generateBlackAttacks(std::bitset<64> blackKnights, std::bitset<64> blackPawns, std::bitset<64> blackBishops,
-     std::bitset<64> blackRooks, std::bitset<64> blackQueen, std::bitset<64> blackKing, std::bitset<64> ownPieces, std::bitset<64> allPieces,
-     std::bitset<64> whitePieces, std::bitset<64> blackPieces)
+std::bitset<64> generateBlackAttacks(const Board& board)
 {
     std::bitset<64> attacks;
 
     for (int sq = 0; sq < 64; ++sq)
     {
-        if (blackKnights[sq])
+        if (board.blackKnights[sq])
         {
             attacks |= generateKnightMoves(std::bitset<64> (1ULL << sq));
         }
     }
 
-    attacks |= generateBlackPawnAttacks(blackPawns);
+    attacks |= generateBlackPawnAttacks(board);
 
     for (int sq = 0; sq < 64; ++sq)
     {
-        if (blackBishops[sq])
-            attacks |= generateBishopMoves(sq, ownPieces, allPieces);
-        else if (blackRooks[sq])
-            attacks |= generateRookMoves(sq, ownPieces, allPieces);
-        else if (blackQueen[sq])
-            attacks |= generateQueenMoves(sq, ownPieces, allPieces);
-        else if (blackKing[sq])
-            attacks |= generateKingMoves(sq, ownPieces, allPieces);
+        if (board.blackBishops[sq])
+            attacks |= generateBishopMoves(sq, board.getOwnPieces(false), board.getAllPieces());
+        else if (board.blackRooks[sq])
+            attacks |= generateRookMoves(sq, board.getOwnPieces(false), board.getAllPieces());
+        else if (board.blackQueen[sq])
+            attacks |= generateQueenMoves(sq, board.getOwnPieces(false), board.getAllPieces());
+        else if (board.blackKing[sq])
+            attacks |= generateKingMoves(sq, board.getOwnPieces(false), board.getAllPieces());
     }
 
     return attacks;
 }
 
-std::map<int, std::bitset<64>> getPinnedPieces(
-    bool whiteToMove,
-    const std::bitset<64>& whiteKing, const std::bitset<64>& blackKing,
-    const std::bitset<64>& whitePieces, const std::bitset<64>& blackPieces,
-    const std::bitset<64>& whiteBishops, const std::bitset<64>& whiteRooks, const std::bitset<64>& whiteQueen,
-    const std::bitset<64>& blackBishops, const std::bitset<64>& blackRooks, const std::bitset<64>& blackQueen,
-    const std::bitset<64>& allPieces)
-{
-    int kingSquare = (whiteToMove ? whiteKing : blackKing)._Find_first();
-    std::bitset<64> enemyBishops = whiteToMove ? blackBishops : whiteBishops;
-    std::bitset<64> enemyRooks = whiteToMove ? blackRooks : whiteRooks;
-    std::bitset<64> enemyQueens = whiteToMove ? blackQueen : whiteQueen;
-    std::bitset<64> ownPieces = whiteToMove ? whitePieces : blackPieces;
+std::map<int, std::bitset<64>> getPinnedPieces(const Board& board)
+    {
+    int kingSquare = (board.whiteToMove ? board.whiteKing : board.blackKing)._Find_first();
+
+    std::bitset<64> enemyBishops = board.whiteToMove ? board.blackBishops : board.whiteBishops;
+    std::bitset<64> enemyRooks = board.whiteToMove ? board.blackRooks : board.whiteRooks;
+    std::bitset<64> enemyQueens = board.whiteToMove ? board.blackQueen : board.whiteQueen;
+
+    std::bitset<64> ownPieces = board.whiteToMove ? board.getWhitePieces() : board.getBlackPieces();
+    std::bitset<64> allPieces    = board.getAllPieces();
 
     std::bitset<64> pinnedPieces;
-    std::bitset<64> lineOfMovement;
     std::map<int, std::bitset<64>> pinnedLines;
 
     int directions[8] = {1, -1, 8, -8, 7, -7, 9, -9};
@@ -491,42 +499,19 @@ std::map<int, std::bitset<64>> getPinnedPieces(
     return pinnedLines;
 }
 
-bool whiteCanCastleKingside = true;
-bool whiteCanCastleQueenside = true;
-bool blackCanCastleKingside = true;
-bool blackCanCastleQueenside = true;
-int en_passant = -1;
-
-bool isKingInCheck(
-    bool whiteToMove,
-    const std::bitset<64>& whiteKing, const std::bitset<64>& blackKing,
-    const std::bitset<64>& whiteKnights, const std::bitset<64>& blackKnights,
-    const std::bitset<64>& whitePawns, const std::bitset<64>& blackPawns,
-    const std::bitset<64>& whiteRooks, const std::bitset<64>& blackRooks,
-    const std::bitset<64>& whiteBishops, const std::bitset<64>& blackBishops,
-    const std::bitset<64>& whiteQueen, const std::bitset<64>& blackQueen,
-    const std::bitset<64>& whitePieces, const std::bitset<64>& blackPieces,
-    const std::bitset<64>& allPieces)
+bool isKingInCheck(const Board& board)
 {
-    int kingIndex = whiteToMove ? whiteKing._Find_first() : blackKing._Find_first();
+    int kingIndex = board.whiteToMove ? board.whiteKing._Find_first() : board.blackKing._Find_first();
 
-    std::bitset<64> attackMap = whiteToMove ?
-        generateBlackAttacks(blackKnights, blackPawns, blackBishops, blackRooks, blackQueen, blackKing, whitePieces, allPieces, whitePieces, blackPieces)
+    std::bitset<64> attackMap = board.whiteToMove ?
+        generateBlackAttacks(board)
         :
-        generateWhiteAttacks(whiteKnights, whitePawns, whiteBishops, whiteRooks, whiteQueen, whiteKing, blackPieces, allPieces, whitePieces, blackPieces);
+        generateWhiteAttacks(board);
 
     return attackMap[kingIndex];
 }
 
-bool makeMove(std::string move,
-              std::bitset<64>& whiteKnights, std::bitset<64>& blackKnights,
-              std::bitset<64>& whitePawns, std::bitset<64>& blackPawns,
-              std::bitset<64>& whiteRooks, std::bitset<64>& blackRooks,
-              std::bitset<64>& whiteBishops, std::bitset<64>& blackBishops,
-              std::bitset<64>& whiteQueen, std::bitset<64>& blackQueen,
-              std::bitset<64>& whiteKing, std::bitset<64>& blackKing,
-              std::bitset<64>& whitePieces, std::bitset<64>& blackPieces,
-              bool whiteToMove, std::bitset<64>& allPieces, std::bitset<64>& ownPieces)
+bool makeMove(std::string move, Board& board)
 {
     if (move.length() != 4 && move.length() != 5) return false;
 
@@ -537,13 +522,7 @@ bool makeMove(std::string move,
     bool isPromotion = move.length() == 5;
     char promotionPiece = isPromotion ? move[4] : '\0';
 
-    std::map<int, std::bitset<64>> pinnedLines = getPinnedPieces(
-    whiteToMove,
-    whiteKing, blackKing,
-    whitePieces, blackPieces,
-    whiteBishops, whiteRooks, whiteQueen,
-    blackBishops, blackRooks, blackQueen,
-    allPieces);
+    std::map<int, std::bitset<64>> pinnedLines = getPinnedPieces(board);
 
 if (pinnedLines.count(from))
 {
@@ -551,287 +530,250 @@ if (pinnedLines.count(from))
         return false;
 }
 
-    if (whiteToMove)
+    if (board.whiteToMove)
     {
-        if (whiteKnights[from])
+        if (board.whiteKnights[from])
         {
+            board.en_passant = -1;
+
             std::bitset<64> thisKnight(1ULL << from);
             std::bitset<64> legalMoves = generateKnightMoves(thisKnight);
-            if (!legalMoves[to] || whiteKnights[to]) return false;
-            if (whitePieces[to]) return false;
+            if (!legalMoves[to] || board.whiteKnights[to]) return false;
+            if (board.getWhitePieces()[to]) return false;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            Board newBoard = board;
 
+            newBoard.blackKnights.reset(to);
+            newBoard.blackPawns.reset(to);
+            newBoard.blackRooks.reset(to);
+            newBoard.blackBishops.reset(to);
+            newBoard.blackQueen.reset(to);
+            newBoard.blackKing.reset(to);
 
-            blackKnights.reset(to);
-            blackPawns.reset(to);
-            blackRooks.reset(to);
-            blackBishops.reset(to);
-            blackQueen.reset(to);
-            blackKing.reset(to);
+            newBoard.whiteKnights.reset(from);
+            newBoard.whiteKnights.set(to);
 
-            whiteKnights.reset(from);
-            whiteKnights.set(to);
-
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard; 
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (whitePawns[from])
+        else if (board.whitePawns[from])
         {
-            if (to == en_passant && to / 8 == 5)
+            if (to == board.en_passant && to / 8 == 5)
             {
-                blackPawns.reset(to - 8);
-                whitePawns.reset(from);
-                whitePawns.set(to);
+                Board newBoard = board;
+                
+                newBoard.blackPawns.reset(to - 8);
+                newBoard.whitePawns.reset(from);
+                newBoard.whitePawns.set(to);
+
+                if (isKingInCheck(newBoard)) return false;
+                board = newBoard;
+                board.whiteToMove = !board.whiteToMove;
                 return true;
             }
+            else board.en_passant = -1;
 
             if (to / 8 == 7 && move.length() != 5) return false;
             else if (to / 8 == 7 && move.length() ==5)
             {
-                if (move[4] != 'q' && move[4] != 'r' && move[4] != 'b' && move[4] != 'k') return false;
+                if (move[4] != 'q' && move[4] != 'r' && move[4] != 'b' && move[4] != 'n') return false;
             }
 
             std::bitset<64> thisPawn(1ULL << from);
-            std::bitset<64> legalMoves = generateWhitePawnMoves(thisPawn, blackPieces, allPieces);
-            if (!legalMoves[to] || whitePawns[to]) return false;
+            std::bitset<64> legalMoves = generateWhitePawnMoves(thisPawn, board.getBlackPieces(), board.getAllPieces());
+            if (!legalMoves[to] || board.whitePawns[to]) return false;
 
             if (from / 8 == 1 && to / 8 == 3)
             {
-                en_passant = from + 8;
+                board.en_passant = from + 8;
             }
             else
             {
-                en_passant = -1;
+                board.en_passant = -1;
             }
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            Board newBoard = board;
 
-            blackKnights.reset(to);
-            blackPawns.reset(to);
-            blackRooks.reset(to);
-            blackBishops.reset(to);
-            blackQueen.reset(to);
-            blackKing.reset(to);
+            newBoard.blackKnights.reset(to);
+            newBoard.blackPawns.reset(to);
+            newBoard.blackRooks.reset(to);
+            newBoard.blackBishops.reset(to);
+            newBoard.blackQueen.reset(to);
+            newBoard.blackKing.reset(to);
 
-            whitePawns.reset(from);
+            newBoard.whitePawns.reset(from);
             if (isPromotion && to / 8 == 7)
             {
                 switch (promotionPiece)
                 {
-                    case 'q': whiteQueen.set(to); break;
-                    case 'r': whiteRooks.set(to); break;
-                    case 'b': whiteBishops.set(to); break;
-                    case 'k': whiteKnights.set(to); break;
+                    case 'q': newBoard.whiteQueen.set(to); break;
+                    case 'r': newBoard.whiteRooks.set(to); break;
+                    case 'b': newBoard.whiteBishops.set(to); break;
+                    case 'n': newBoard.whiteKnights.set(to); break;
                     default: return false;
                 }
             }
             else
             {
-                whitePawns.set(to);
+                newBoard.whitePawns.set(to);
             }
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (whiteRooks[from])
+        else if (board.whiteRooks[from])
         {
-            std::bitset<64> legalMoves = generateRookMoves(from, whitePieces, allPieces);
-            if (!legalMoves[to] || whiteRooks[to]) return false;
-            if (whitePieces[to]) return false;
-            if (from == notationToIndex("a1")) whiteCanCastleQueenside = false;
-            else if (from == notationToIndex("h1")) whiteCanCastleKingside = false;
+            board.en_passant = -1;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            std::bitset<64> legalMoves = generateRookMoves(from, board.getWhitePieces(), board.getAllPieces());
+            if (!legalMoves[to] || board.whiteRooks[to]) return false;
+            if (board.getWhitePieces()[to]) return false;
+            if (from == notationToIndex("a1")) board.whiteCanCastleQueenside = false;
+            else if (from == notationToIndex("h1")) board.whiteCanCastleKingside = false;
 
-            blackKnights.reset(to);
-            blackPawns.reset(to);
-            blackRooks.reset(to);
-            blackBishops.reset(to);
-            blackQueen.reset(to);
-            blackKing.reset(to);
+            Board newBoard = board;
 
-            whiteRooks.reset(from);
-            whiteRooks.set(to);
+            newBoard.blackKnights.reset(to);
+            newBoard.blackPawns.reset(to);
+            newBoard.blackRooks.reset(to);
+            newBoard.blackBishops.reset(to);
+            newBoard.blackQueen.reset(to);
+            newBoard.blackKing.reset(to);
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            newBoard.whiteRooks.reset(from);
+            newBoard.whiteRooks.set(to);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (whiteBishops[from])
+        else if (board.whiteBishops[from])
         {
-            std::bitset<64> legalMoves = generateBishopMoves(from, whitePieces, allPieces);
-            if (!legalMoves[to] || whiteBishops[to]) return false;
-            if (whitePieces[to]) return false;
+            board.en_passant = -1;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            std::bitset<64> legalMoves = generateBishopMoves(from, board.getWhitePieces(), board.getAllPieces());
+            if (!legalMoves[to] || board.whiteBishops[to]) return false;
+            if (board.getWhitePieces()[to]) return false;
 
-            blackKnights.reset(to);
-            blackPawns.reset(to);
-            blackRooks.reset(to);
-            blackBishops.reset(to);
-            blackQueen.reset(to);
-            blackKing.reset(to);
+            Board newBoard = board;
 
-            whiteBishops.reset(from);
-            whiteBishops.set(to);
+            newBoard.blackKnights.reset(to);
+            newBoard.blackPawns.reset(to);
+            newBoard.blackRooks.reset(to);
+            newBoard.blackBishops.reset(to);
+            newBoard.blackQueen.reset(to);
+            newBoard.blackKing.reset(to);
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            newBoard.whiteBishops.reset(from);
+            newBoard.whiteBishops.set(to);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (whiteQueen[from])
+        else if (board.whiteQueen[from])
         {
-            std::bitset<64> legalMoves = generateQueenMoves(from, whitePieces, allPieces);
-            if (!legalMoves[to] || whiteQueen[to]) return false;
-            if (whitePieces[to]) return false;
+            board.en_passant = -1;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            std::bitset<64> legalMoves = generateQueenMoves(from, board.getWhitePieces(), board.getAllPieces());
+            if (!legalMoves[to] || board.whiteQueen[to]) return false;
+            if (board.getWhitePieces()[to]) return false;
 
-            blackKnights.reset(to);
-            blackPawns.reset(to);
-            blackRooks.reset(to);
-            blackBishops.reset(to);
-            blackQueen.reset(to);
-            blackKing.reset(to);
+            Board newBoard = board;
 
-            whiteQueen.reset(from);
-            whiteQueen.set(to);
+            newBoard.blackKnights.reset(to);
+            newBoard.blackPawns.reset(to);
+            newBoard.blackRooks.reset(to);
+            newBoard.blackBishops.reset(to);
+            newBoard.blackQueen.reset(to);
+            newBoard.blackKing.reset(to);
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            newBoard.whiteQueen.reset(from);
+            newBoard.whiteQueen.set(to);
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (whiteKing[from])
+        else if (board.whiteKing[from])
         {
-            if (to == notationToIndex("g1") && whiteCanCastleKingside)
+            board.en_passant = -1;
+
+            if (to == notationToIndex("g1") && board.whiteCanCastleKingside)
             {
-                if (!allPieces[notationToIndex("f1")] && !allPieces[notationToIndex("g1")])
+                if (!board.getAllPieces()[notationToIndex("f1")] && !board.getAllPieces()[notationToIndex("g1")])
                 {
-                    whiteKing.reset(from);
-                    whiteKing.set(to);
-                    whiteRooks.reset(notationToIndex("h1"));
-                    whiteRooks.set(notationToIndex("f1"));
-                    whiteCanCastleKingside = false;
-                    whiteCanCastleQueenside = false;
+                    Board newBoard = board;
+
+                    newBoard.whiteKing.reset(from);
+                    newBoard.whiteKing.set(to);
+                    newBoard.whiteRooks.reset(notationToIndex("h1"));
+                    newBoard.whiteRooks.set(notationToIndex("f1"));
+
+                    if (isKingInCheck(newBoard) || generateBlackAttacks(board)[notationToIndex("f1")]) return false;
+                    board = newBoard;
+                    board.whiteToMove = !board.whiteToMove;
+                    board.whiteCanCastleKingside = false;
+                    board.whiteCanCastleQueenside = false;
                     return true;
                 }
             }
-            else if (to == notationToIndex("c1") && whiteCanCastleQueenside)
+            else if (to == notationToIndex("c1") && board.whiteCanCastleQueenside)
             {
-                if (!allPieces[notationToIndex("b1")] && !allPieces[notationToIndex("c1")] && !allPieces[notationToIndex("d1")])
+                if (!board.getAllPieces()[notationToIndex("b1")] && !board.getAllPieces()[notationToIndex("c1")] && !board.getAllPieces()[notationToIndex("d1")])
                 {
-                    whiteKing.reset(from);
-                    whiteKing.set(to);
-                    whiteRooks.reset(notationToIndex("a1"));
-                    whiteRooks.set(notationToIndex("d1"));
-                    whiteCanCastleKingside = false;
-                    whiteCanCastleQueenside = false;
+                    Board newBoard = board;
+
+                    newBoard.whiteKing.reset(from);
+                    newBoard.whiteKing.set(to);
+                    newBoard.whiteRooks.reset(notationToIndex("a1"));
+                    newBoard.whiteRooks.set(notationToIndex("d1"));
+
+                    if (isKingInCheck(newBoard) || generateBlackAttacks(board)[notationToIndex("d1")]) return false;
+                    board = newBoard;
+                    board.whiteToMove = !board.whiteToMove;
+                    board.whiteCanCastleKingside = false;
+                    board.whiteCanCastleQueenside = false;
+                    return true;
+
                     return true;
                 }
             }
 
-            std::bitset<64> legalMoves = generateKingMoves(from, whitePieces, allPieces) & ~generateBlackAttacks(blackKnights, blackPawns,
-                 blackBishops, blackRooks, blackQueen, blackKing, ownPieces, allPieces, whitePieces, blackPieces);
-            if (!legalMoves[to] || whiteKing[to]) return false;
-            if (whitePieces[to]) return false;
+            std::bitset<64> legalMoves = generateKingMoves(from, board.getWhitePieces(), board.getAllPieces()) & ~generateBlackAttacks(board);
+            if (!legalMoves[to] || board.whiteKing[to]) return false;
+            if (board.getWhitePieces()[to]) return false;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            Board newBoard = board;
 
-            blackKnights.reset(to);
-            blackPawns.reset(to);
-            blackRooks.reset(to);
-            blackBishops.reset(to);
-            blackQueen.reset(to);
-            blackKing.reset(to);
+            newBoard.blackKnights.reset(to);
+            newBoard.blackPawns.reset(to);
+            newBoard.blackRooks.reset(to);
+            newBoard.blackBishops.reset(to);
+            newBoard.blackQueen.reset(to);
+            newBoard.blackKing.reset(to);
 
-            whiteKing.reset(from);
-            whiteKing.set(to);
+            newBoard.whiteKing.reset(from);
+            newBoard.whiteKing.set(to);
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
-            if (isKingInCheck(true, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
-
-            whiteCanCastleKingside = false;
-            whiteCanCastleQueenside = false;
+            board.whiteCanCastleKingside = false;
+            board.whiteCanCastleQueenside = false;
 
             return true;
         }
@@ -839,285 +781,248 @@ if (pinnedLines.count(from))
     
     else 
     {
-        if (blackKnights[from])
+        if (board.blackKnights[from])
         {
+            board.en_passant = -1;
+
             std::bitset<64> thisKnight(1ULL << from);
             std::bitset<64> legalMoves = generateKnightMoves(thisKnight);
-            if (!legalMoves[to] || blackKnights[to]) return false;
-            if (blackPieces[to]) return false;
+            if (!legalMoves[to] || board.blackKnights[to]) return false;
+            if (board.getBlackPieces()[to]) return false;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            Board newBoard = board;
 
-            whiteKnights.reset(to);
-            whitePawns.reset(to);
-            whiteRooks.reset(to);
-            whiteBishops.reset(to);
-            whiteQueen.reset(to);
-            whiteKing.reset(to);
-  
-            blackKnights.reset(from);
-            blackKnights.set(to);
+            newBoard.whiteKnights.reset(to);
+            newBoard.whitePawns.reset(to);
+            newBoard.whiteRooks.reset(to);
+            newBoard.whiteBishops.reset(to);
+            newBoard.whiteQueen.reset(to);
+            newBoard.whiteKing.reset(to);
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            newBoard.blackKnights.reset(from);
+            newBoard.blackKnights.set(to);
 
-            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (blackPawns[from])
+        else if (board.blackPawns[from])
         {
-            if (to == en_passant && to / 8 == 2)
+            if (to == board.en_passant && to / 8 == 2)
             {
-                whitePawns.reset(to + 8);
-                blackPawns.reset(from);
-                blackPawns.set(to);
+                Board newBoard = board;
+        
+                newBoard.whitePawns.reset(to + 8);
+                newBoard.blackPawns.reset(from);
+                newBoard.blackPawns.set(to);
+
+                if (isKingInCheck(newBoard)) return false;
+                board = newBoard;
+                board.whiteToMove = !board.whiteToMove;
+                return true;
             }
+            else board.en_passant = -1;
 
             if (to / 8 == 0 && move.length() != 5) return false;
             else if (to / 8 == 0 && move.length() ==5)
             {
-                if (move[4] != 'q' || move[4] != 'r' || move[4] != 'b' || move[4] != 'k') return false;
+                if (move[4] != 'q' && move[4] != 'r' && move[4] != 'b' && move[4] != 'n') return false;
             }
 
             std::bitset<64> thisPawn(1ULL << from);
-            std::bitset<64> legalMoves = generateBlackPawnMoves(thisPawn, whitePieces, allPieces);
-            if (!legalMoves[to] || blackPawns[to]) return false;
+            std::bitset<64> legalMoves = generateBlackPawnMoves(thisPawn, board.getWhitePieces(), board.getAllPieces());
+            if (!legalMoves[to] || board.blackPawns[to]) return false;
 
             if (from / 8 == 6 && to / 8 == 4)
             {
-                en_passant = from - 8;
+                board.en_passant = from - 8;
             }
             else
             {
-                en_passant = -1;
+                board.en_passant = -1;
             }
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            Board newBoard = board;
 
-            whiteKnights.reset(to);
-            whitePawns.reset(to);
-            whiteRooks.reset(to);
-            whiteBishops.reset(to);
-            whiteQueen.reset(to);
-            whiteKing.reset(to);
+            newBoard.whitePawns.reset(to);
+            newBoard.whiteKnights.reset(to);
+            newBoard.whiteBishops.reset(to);
+            newBoard.whiteRooks.reset(to);
+            newBoard.whiteQueen.reset(to);
+            newBoard.whiteKing.reset(to);
   
-            blackPawns.reset(from);
+            newBoard.blackPawns.reset(from);
             if (isPromotion && to / 8 == 0)
             {
                 switch (promotionPiece)
                 {
-                    case 'q': blackQueen.set(to); break;
-                    case 'r': blackRooks.set(to); break;
-                    case 'b': blackBishops.set(to); break;
-                    case 'k': blackKnights.set(to); break;
+                    case 'q': newBoard.blackQueen.set(to); break;
+                    case 'r': newBoard.blackRooks.set(to); break;
+                    case 'b': newBoard.blackBishops.set(to); break;
+                    case 'n': newBoard.blackKnights.set(to); break;
                     default: return false;
                 }
             }
             else
             {
-                blackPawns.set(to);
+                newBoard.blackPawns.set(to);
             }
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-
-            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (blackRooks[from])
+        else if (board.blackRooks[from])
         {
-            std::bitset<64> legalMoves = generateRookMoves(from, blackPieces, allPieces);
-            if (!legalMoves[to] || blackRooks[to]) return false;
-            if (blackPieces[to]) return false;
-            if (from == notationToIndex("a8")) blackCanCastleQueenside = false;
-            else if (from == notationToIndex("h8")) blackCanCastleKingside = false;
+            board.en_passant = -1;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            std::bitset<64> legalMoves = generateRookMoves(from, board.getBlackPieces(), board.getAllPieces());
+            if (!legalMoves[to] || board.blackRooks[to]) return false;
+            if (board.getBlackPieces()[to]) return false;
+            if (from == notationToIndex("a8")) board.blackCanCastleQueenside = false;
+            else if (from == notationToIndex("h8")) board.blackCanCastleKingside = false;
 
-            whiteKnights.reset(to);
-            whitePawns.reset(to);
-            whiteRooks.reset(to);
-            whiteBishops.reset(to);
-            whiteQueen.reset(to);
-            whiteKing.reset(to);
-  
-            blackRooks.reset(from);
-            blackRooks.set(to);
+            Board newBoard = board;
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            newBoard.whiteKnights.reset(to);
+            newBoard.whitePawns.reset(to);
+            newBoard.whiteRooks.reset(to);
+            newBoard.whiteBishops.reset(to);
+            newBoard.whiteQueen.reset(to);
+            newBoard.whiteKing.reset(to);
 
-            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            newBoard.blackRooks.reset(from);
+            newBoard.blackRooks.set(to);
+
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (blackBishops[from])
+        else if (board.blackBishops[from])
         {
-            std::bitset<64> legalMoves = generateBishopMoves(from, blackPieces, allPieces);
-            if (!legalMoves[to] || blackBishops[to]) return false;
-            if (blackPieces[to]) return false;
+            board.en_passant = -1;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            std::bitset<64> legalMoves = generateBishopMoves(from, board.getBlackPieces(), board.getAllPieces());
+            if (!legalMoves[to] || board.getBlackPieces()[to]) return false;
+            if (board.getBlackPieces()[to]) return false;
 
-            whiteKnights.reset(to);
-            whitePawns.reset(to);
-            whiteRooks.reset(to);
-            whiteBishops.reset(to);
-            whiteQueen.reset(to);
-            whiteKing.reset(to);
-  
-            blackBishops.reset(from);
-            blackBishops.set(to);
+            Board newBoard = board;
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            newBoard.whiteKnights.reset(to);
+            newBoard.whitePawns.reset(to);
+            newBoard.whiteRooks.reset(to);
+            newBoard.whiteBishops.reset(to);
+            newBoard.whiteQueen.reset(to);
+            newBoard.whiteKing.reset(to);
 
-            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            newBoard.blackBishops.reset(from);
+            newBoard.blackBishops.set(to);
+
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (blackQueen[from])
+        else if (board.blackQueen[from])
         {
-            std::bitset<64> legalMoves = generateQueenMoves(from, blackPieces, allPieces);
-            if (!legalMoves[to] || blackQueen[to]) return false;
-            if (blackPieces[to]) return false;
+            board.en_passant = -1;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            std::bitset<64> legalMoves = generateQueenMoves(from,board.getBlackPieces(), board.getAllPieces());
+            if (!legalMoves[to] || board.blackQueen[to]) return false;
+            if (board.getBlackPieces()[to]) return false;
 
-            whiteKnights.reset(to);
-            whitePawns.reset(to);
-            whiteRooks.reset(to);
-            whiteBishops.reset(to);
-            whiteQueen.reset(to);
-            whiteKing.reset(to);
-  
-            blackQueen.reset(from);
-            blackQueen.set(to);
+            Board newBoard = board;
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            newBoard.whiteKnights.reset(to);
+            newBoard.whitePawns.reset(to);
+            newBoard.whiteRooks.reset(to);
+            newBoard.whiteBishops.reset(to);
+            newBoard.whiteQueen.reset(to);
+            newBoard.whiteKing.reset(to);
 
-            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            newBoard.blackQueen.reset(from);
+            newBoard.blackQueen.set(to);
+
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
             return true;
         }
-        else if (blackKing[from])
+        else if (board.blackKing[from])
         {
-            if (to ==  notationToIndex("g8") && blackCanCastleKingside)
+            board.en_passant = -1;
+
+            if (to ==  notationToIndex("g8") && board.blackCanCastleKingside)
             {
-                if (!allPieces[notationToIndex("f8")] && !allPieces[notationToIndex("g8")])
+                if (!board.getAllPieces()[notationToIndex("f8")] && !board.getAllPieces()[notationToIndex("g8")])
                 {
-                    blackKing.reset(from);
-                    blackKing.set(to);
-                    blackRooks.reset(notationToIndex("h8"));
-                    blackRooks.set(notationToIndex("f8"));
-                    blackCanCastleKingside = false;
-                    blackCanCastleQueenside = false;
+                    Board newBoard = board;
 
+                    newBoard.blackKing.reset(from);
+                    newBoard.blackKing.set(to);
+                    newBoard.blackRooks.reset(notationToIndex("h8"));
+                    newBoard.blackRooks.set(notationToIndex("f8"));
+
+                    if (isKingInCheck(newBoard) || generateWhiteAttacks(board)[notationToIndex("f8")]) return false;
+                    board = newBoard;
+                    board.whiteToMove = !board.whiteToMove;
+                    board.blackCanCastleKingside = false;
+                    board.blackCanCastleQueenside = false;
                     return true;
                 }
             }
-            else if (to ==  notationToIndex("c8") && blackCanCastleQueenside)
+            else if (to ==  notationToIndex("c8") && board.blackCanCastleQueenside)
             {
-                if (!allPieces[notationToIndex("b8")] && !allPieces[notationToIndex("c8")] && !allPieces[notationToIndex("d8")])
+                if (!board.getAllPieces()[notationToIndex("b8")] && !board.getAllPieces()[notationToIndex("c8")] && !board.getAllPieces()[notationToIndex("d8")])
                 {
-                    blackKing.reset(from);
-                    blackKing.set(to);
-                    blackRooks.reset(notationToIndex("a8"));
-                    blackRooks.set(notationToIndex("d8"));
-                    blackCanCastleKingside = false;
-                    blackCanCastleQueenside = false;
+                    Board newBoard = board;
+
+                    newBoard.blackKing.reset(from);
+                    newBoard.blackKing.set(to);
+                    newBoard.blackRooks.reset(notationToIndex("a8"));
+                    newBoard.blackRooks.set(notationToIndex("d8"));
+
+                    if (isKingInCheck(newBoard) || generateWhiteAttacks(board)[notationToIndex("d8")]) return false;
+                    board = newBoard;
+                    board.whiteToMove = !board.whiteToMove;
+                    board.blackCanCastleKingside = false;
+                    board.blackCanCastleQueenside = false;
+                    return true;
 
                     return true;
                 }
             }
 
-            std::bitset<64> legalMoves = generateKingMoves(from, blackPieces, allPieces) & ~generateWhiteAttacks(whiteKnights, whitePawns,
-                 whiteBishops, whiteRooks, whiteQueen, whiteKing, ownPieces, allPieces, whitePieces, blackPieces);
-            if (!legalMoves[to] || blackKing[to]) return false;
-            if (blackPieces[to]) return false;
+            std::bitset<64> legalMoves = generateKingMoves(from, board.getBlackPieces(), board.getAllPieces()) & ~generateWhiteAttacks(board);
+            if (!legalMoves[to] || board.blackKing[to]) return false;
+            if (board.getBlackPieces()[to]) return false;
 
-            auto wp = whitePawns, wn = whiteKnights, wb = whiteBishops, wr = whiteRooks, wq = whiteQueen, wk = whiteKing;
-            auto bp = blackPawns, bn = blackKnights, bb = blackBishops, br = blackRooks, bq = blackQueen, bk = blackKing;
+            Board newBoard = board;
 
-            whiteKnights.reset(to);
-            whitePawns.reset(to);
-            whiteRooks.reset(to);
-            whiteBishops.reset(to);
-            whiteQueen.reset(to);
-            whiteKing.reset(to);
-  
-            blackKing.reset(from);
-            blackKing.set(to);
+            newBoard.whiteKnights.reset(to);
+            newBoard.whitePawns.reset(to);
+            newBoard.whiteRooks.reset(to);
+            newBoard.whiteBishops.reset(to);
+            newBoard.whiteQueen.reset(to);
+            newBoard.whiteKing.reset(to);
 
-            std::bitset<64> newWhitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            std::bitset<64> newBlackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::bitset<64> newAllPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
+            newBoard.blackKing.reset(from);
+            newBoard.blackKing.set(to);
 
-            if (isKingInCheck(false, whiteKing, blackKing, whiteKnights, blackKnights, whitePawns, blackPawns,
-                                    whiteRooks, blackRooks, whiteBishops, blackBishops, whiteQueen, blackQueen,
-                                    newWhitePieces, newBlackPieces, newAllPieces))
-                            {
-                            whitePawns = wp; whiteKnights = wn; whiteBishops = wb; whiteRooks = wr; whiteQueen = wq; whiteKing = wk;
-                            blackPawns = bp; blackKnights = bn; blackBishops = bb; blackRooks = br; blackQueen = bq; blackKing = bk;
-                            return false;
-                            }
+            if (isKingInCheck(newBoard)) return false;
+            else board = newBoard;
+            board.whiteToMove = !board.whiteToMove;
 
-            blackCanCastleKingside = false;
-            blackCanCastleQueenside = false;
+            board.blackCanCastleKingside = false;
+            board.blackCanCastleQueenside = false;
 
             return true;
         }
@@ -1127,67 +1032,40 @@ if (pinnedLines.count(from))
     return false;
 }
 
+int evaluatePosition(
+    const std::bitset<64>& whitePawns,
+    const std::bitset<64>& blackPawns,
+    const std::bitset<64>& whiteKnights,
+    const std::bitset<64>& blackKnights,
+    const std::bitset<64>& whiteBishops,
+    const std::bitset<64>& blackBishops,
+    const std::bitset<64>& whiteRooks,
+    const std::bitset<64>& blackRooks,
+    const std::bitset<64>& whiteQueen,
+    const std::bitset<64>& blackQueen
+) {
+    int score = 0;
+
+    score += whitePawns.count() * 100;
+    score -= blackPawns.count() * 100;
+
+    score += whiteKnights.count() * 320;
+    score -= blackKnights.count() * 320;
+
+    score += whiteBishops.count() * 330;
+    score -= blackBishops.count() * 330;
+
+    score += whiteRooks.count() * 500;
+    score -= blackRooks.count() * 500;
+
+    score += whiteQueen.count() * 900;
+    score -= blackQueen.count() * 900;
+
+    return score;
+}
+
 int main()
 {
-    std::bitset<64> whitePawns(0x000000000000FF00);
-    std::bitset<64> whiteRooks(1ULL << 0 | 1ULL << 7);
-    std::bitset<64> whiteKnights(1ULL << 1 | 1ULL << 6);
-    std::bitset<64> whiteBishops(1ULL << 2 | 1ULL << 5);
-    std::bitset<64> whiteQueen(1ULL << 3);
-    std::bitset<64> whiteKing(1ULL << 4);
-
-    std::bitset<64> blackPawns(0x00FF000000000000);
-    std::bitset<64> blackRooks(1ULL << 56 | 1ULL << 63);
-    std::bitset<64> blackKnights(1ULL << 57 | 1ULL << 62);
-    std::bitset<64> blackBishops(1ULL << 58 | 1ULL << 61);
-    std::bitset<64> blackQueen(1ULL << 59);
-    std::bitset<64> blackKing(1ULL << 60);
-
-    std::bitset<64> allPieces = getAllPieces(  whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-    blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-    std::bitset<64> whitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-    std::bitset<64> blackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-
-    bool whiteToMove = true;
-
-    std::bitset<64> ownPieces;
-    if (whiteToMove) ownPieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-    else ownPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-
-    std::string move;
-
-    while (true)
-    {
-        printFullBoard(whitePawns, blackPawns, whiteRooks, blackRooks,
-               whiteKnights, blackKnights, whiteBishops, blackBishops,
-               whiteQueen, blackQueen, whiteKing, blackKing);
-
-        std::cout << (whiteToMove ? "White" : "Black") << " to move:\n";
-        std::cin >> move;
-
-        if (move == "exit") break;
-
-        bool success = makeMove(move, whiteKnights, blackKnights, whitePawns, blackPawns,
-                        whiteRooks, blackRooks, whiteBishops, blackBishops,
-                        whiteQueen, blackQueen, whiteKing, blackKing, whitePieces, blackPieces,
-                        whiteToMove, allPieces, ownPieces);
-
-        if (success)
-        {
-            whitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            blackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            allPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                              blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            whiteToMove = !whiteToMove;
-            if (whiteToMove) ownPieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-            else ownPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-            std::cout << "successful move\n";
-        }
-        else
-        {
-            std::cout << "Invalid move!\n";
-        }
-    }
-
+    uciLoop();
     return 0;
 }
