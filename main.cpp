@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include "uci.h"
+#include <vector>
 
 struct Board
 {
@@ -1032,34 +1033,24 @@ if (pinnedLines.count(from))
     return false;
 }
 
-int evaluatePosition(
-    const std::bitset<64>& whitePawns,
-    const std::bitset<64>& blackPawns,
-    const std::bitset<64>& whiteKnights,
-    const std::bitset<64>& blackKnights,
-    const std::bitset<64>& whiteBishops,
-    const std::bitset<64>& blackBishops,
-    const std::bitset<64>& whiteRooks,
-    const std::bitset<64>& blackRooks,
-    const std::bitset<64>& whiteQueen,
-    const std::bitset<64>& blackQueen
-) {
+int evaluatePosition(const Board& board) 
+{
     int score = 0;
 
-    score += whitePawns.count() * 100;
-    score -= blackPawns.count() * 100;
+    score += board.whitePawns.count() * 100;
+    score -= board.blackPawns.count() * 100;
 
-    score += whiteKnights.count() * 320;
-    score -= blackKnights.count() * 320;
+    score += board.whiteKnights.count() * 320;
+    score -= board.blackKnights.count() * 320;
 
-    score += whiteBishops.count() * 330;
-    score -= blackBishops.count() * 330;
+    score += board.whiteBishops.count() * 330;
+    score -= board.blackBishops.count() * 330;
 
-    score += whiteRooks.count() * 500;
-    score -= blackRooks.count() * 500;
+    score += board.whiteRooks.count() * 500;
+    score -= board.blackRooks.count() * 500;
 
-    score += whiteQueen.count() * 900;
-    score -= blackQueen.count() * 900;
+    score += board.whiteQueen.count() * 900;
+    score -= board.blackQueen.count() * 900;
 
     return score;
 }
