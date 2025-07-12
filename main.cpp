@@ -153,6 +153,28 @@ std::bitset<64> generateBlackPawnMoves(std::bitset<64> blackPawns, std::bitset<6
     return oneStep | twoStep | captures;
  }
 
+std::bitset<64> constWhitePawnCaptures(std::bitset<64> whitePawns)
+{
+    std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
+    std::bitset<64> notHFile = ~std::bitset<64>(0x8080808080808080ULL);
+
+    std::bitset<64> capturesLeft = (whitePawns & notAFile) << 7;
+    std::bitset<64> capturesRight = (whitePawns & notHFile) << 9;
+
+    return (capturesLeft | capturesRight);
+}
+
+std::bitset<64> constBlackPawnCaptures(std::bitset<64> blackPawns)
+{
+    std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
+    std::bitset<64> notHFile = ~std::bitset<64>(0x8080808080808080ULL);
+
+    std::bitset<64> capturesLeft = (blackPawns & notHFile) >> 7;
+    std::bitset<64> capturesRight = (blackPawns & notAFile) >> 9;
+
+    return (capturesLeft | capturesRight);
+}
+
 std::bitset<64> generateRookMoves(int square, std::bitset<64> ownPieces, std::bitset<64> allPieces)
 {
     std::bitset<64> moves;
@@ -957,6 +979,102 @@ int evaluatePosition(const Board& board)
     score -= board.blackQueen.count() * 900;
 
     return score;
+}
+
+std::vector<std::string> generateLegalMoves(Board& board)
+{
+    std::vector<std::string> legalMoves;
+
+    std::vector<std::string> pseudoMoves;
+
+    bool white = board.whiteToMove;
+
+    for (int i = 0; i < 64; ++i)
+    {
+        std::bitset<64> from(1ULL << i);
+
+        if ((white && board.whiteKnights[i]) || (!white && board.blackKnights[i]))
+        {
+            std::bitset<64> targets(generateKnightMoves(from));
+            for (int j = 0; j < 64; ++j)
+            {
+                if (targets[j]) pseudoMoves.push_back(indexToNotation(i) + indexToNotation(j));
+            }
+        }
+
+        if ((white && board.whiteBishops[i]) || (!white && board.blackBishops[i]))
+        {
+            std::bitset<64> targets(generateBishopMoves(i, board.getOwnPieces(white), board.getAllPieces()));
+            for (int j = 0; j < 64; ++j)
+            {
+                if ( targets[j]) pseudoMoves.push_back(indexToNotation(i) + indexToNotation(j));
+            }
+        }
+
+        if ((white && board.whiteRooks[i]) || (!white && board.blackRooks[i]))
+        {
+            std::bitset<64> targets(generateRookMoves(i, board.getOwnPieces(white), board.getAllPieces()));
+            for (int j = 0; j < 64; ++j)
+            {
+                if ( targets[j]) pseudoMoves.push_back(indexToNotation(i) + indexToNotation(j));
+            }
+        }
+
+        if ((white && board.whiteQueen[i]) || (!white && board.blackQueen[i]))
+        {
+            std::bitset<64> targets(generateQueenMoves(i, board.getOwnPieces(white), board.getAllPieces()));
+            for (int j = 0; j < 64; ++j)
+            {
+                if ( targets[j]) pseudoMoves.push_back(indexToNotation(i) + indexToNotation(j));
+            }
+        }
+
+        if ((white && board.whiteKing[i]) || (!white && board.blackKing[i]))
+        {
+            std::bitset<64> targets(generateKingMoves(i, board.getOwnPieces(white), board.getAllPieces()));
+            std::bitset<64> enemyAttacks = white ? generateBlackAttacks(board) : generateWhiteAttacks(board);
+            targets &= ~enemyAttacks;
+            for (int j = 0; j < 64; ++j)
+            {
+                if ( targets[j]) pseudoMoves.push_back(indexToNotation(i) + indexToNotation(j));
+            }
+        }
+
+        if ((white && board.whitePawns[i]) || (!white && board.blackPawns[i]))
+        {
+            std::bitset<64> targets = white
+            ? generateWhitePawnMoves(from, board.getBlackPieces(), board.getAllPieces())
+            : generateBlackPawnMoves(from, board.getWhitePieces(), board.getAllPieces());
+
+            for (int j = 0; j < 64; ++j)
+            {
+                if (targets[j])
+                {
+                    std::string baseMove = indexToNotation(i) + indexToNotation(j);
+
+                    if ((white && j / 8 == 7) || (!white && j / 8 == 0))
+                    {
+                        pseudoMoves.push_back(baseMove + 'q');
+                        pseudoMoves.push_back(baseMove + 'r');
+                        pseudoMoves.push_back(baseMove + 'b');
+                        pseudoMoves.push_back(baseMove + 'n');
+                    }
+                    else pseudoMoves.push_back(baseMove);
+                }
+            }
+        }
+    }
+
+    for (const std::string& move : pseudoMoves)
+    {
+        Board newBoard = board;
+        if (makeMove(move, newBoard))
+        {
+            legalMoves.push_back(move);
+        }
+    }
+
+    return legalMoves;
 }
 
 int main()
