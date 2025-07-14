@@ -4,58 +4,8 @@
 #include <map>
 #include "uci.h"
 #include <vector>
-
-struct Board
-{
-    std::bitset<64> whitePawns;
-    std::bitset<64> whiteKnights;
-    std::bitset<64> whiteBishops;
-    std::bitset<64> whiteRooks;
-    std::bitset<64> whiteQueen;
-    std::bitset<64> whiteKing;
-
-    std::bitset<64> blackPawns;
-    std::bitset<64> blackKnights;
-    std::bitset<64> blackBishops;
-    std::bitset<64> blackRooks;
-    std::bitset<64> blackQueen;
-    std::bitset<64> blackKing;
-    
-    bool whiteCanCastleKingside = true;
-    bool whiteCanCastleQueenside = true;
-    bool blackCanCastleKingside = true;
-    bool blackCanCastleQueenside = true;
-    bool whiteToMove = true;
-    int en_passant = -1;
-
-    std::bitset<64> getWhitePieces() const
-    {
-        return whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueen | whiteKing;
-    }
-
-    std::bitset<64> getBlackPieces() const
-    {
-        return blackPawns | blackKnights | blackBishops | blackRooks | blackQueen | blackKing;
-    }
-
-    std::bitset<64> getAllPieces() const
-    {
-        return getWhitePieces() | getBlackPieces();
-    }
-
-    std::bitset<64> getOwnPieces(bool whiteToMove) const
-    {
-        return whiteToMove 
-        ? whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueen | whiteKing
-        : blackPawns | blackKnights | blackBishops |blackRooks | blackQueen | blackKing;
-    }
-
-    std::bitset<64> getOpponentPieces(bool whiteToMove) const {
-    return whiteToMove
-        ? blackPawns | blackKnights | blackBishops | blackRooks | blackQueen | blackKing
-        : whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueen | whiteKing;
-    }
-};
+#include <limits>
+#include "Board.h"
 
 void printFullBoard(const Board& board)
 {
@@ -981,7 +931,7 @@ int evaluatePosition(const Board& board)
     return score;
 }
 
-std::vector<std::string> generateLegalMoves(Board& board)
+std::vector<std::string> generateLegalMoves(const Board& board)
 {
     std::vector<std::string> legalMoves;
 
@@ -1075,6 +1025,90 @@ std::vector<std::string> generateLegalMoves(Board& board)
     }
 
     return legalMoves;
+}
+
+int minimax(Board board, int depth, int alpha, int beta)
+{
+    int score = evaluatePosition(board);
+    if (depth == 0 || generateLegalMoves(board).empty())
+    {
+        return score;
+    }
+
+    if (board.whiteToMove)
+    {
+        int best = -100000;
+        for (const std::string move : generateLegalMoves(board))
+        {
+            Board newBoard = board;
+            makeMove(move, newBoard);
+
+            score = minimax(newBoard, depth - 1, alpha, beta);
+
+            best = std::max(best, score);
+            alpha = std::max(alpha, score);
+
+            if (beta <= alpha)
+            {
+                break;
+            }
+        }
+        return best;
+    }
+    else
+    {
+        int best = 100000;
+        for (const std::string move : generateLegalMoves(board))
+        {
+            Board newBoard = board;
+            makeMove(move, newBoard);
+            score = minimax(newBoard, depth - 1, alpha, beta);
+
+            best = std::min(best, score);
+            beta = std::min(beta, score);
+
+            if (beta <= alpha)
+            {
+                break;
+            }
+        }
+        return best;
+    }
+}
+
+std::string findBestMove(const Board& board, int depth)
+{
+    int bestScore = board.whiteToMove ? -100000 : 100000;
+    std::string bestMove;
+
+    auto moves = generateLegalMoves(board);
+    std::cerr << "Generated moves count: " << moves.size() << "\n";
+
+     if (moves.empty())
+     {
+        std::cerr << "No legal moves found. Returning empty string.\n";
+        return "";
+     }
+    for (const std::string move : generateLegalMoves(board))
+    {
+        Board newBoard = board;
+        makeMove(move, newBoard);
+
+        int score = minimax(newBoard, depth - 1, -100000, 100000);
+
+        if (board.whiteToMove && score > bestScore)
+        {
+            bestScore = score;
+            bestMove = move;
+        }
+        else if (!board.whiteToMove && score < bestScore)
+        {
+            bestScore = score;
+            bestMove = move;
+        }
+    }
+    std::cerr << "Best move found: " << bestMove << "\n";
+    return bestMove;
 }
 
 int main()

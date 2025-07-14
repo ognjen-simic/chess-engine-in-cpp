@@ -10,11 +10,11 @@ This is a chess engine I'm currently building in C++ as a personal learning proj
 - Capturing the opponent’s pieces
 - Turn switching between White and Black
 - Check detection
+- Minimax algorithm with a basic evaluation function
 
 ## Upcoming Features
 
 - Checkmate and stalemate detection
-- Minimax algorithm with a basic evaluation function
 - UCI connection to Lichess for playing against other bots
 
 ## How to Compile and Run
