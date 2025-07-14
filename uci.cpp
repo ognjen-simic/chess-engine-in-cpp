@@ -2,62 +2,18 @@
 #include <string>
 #include <bitset>
 #include <sstream>
+#include "Board.h"
 
-bool makeMove(std::string move,
-              std::bitset<64>& whiteKnights, std::bitset<64>& blackKnights,
-              std::bitset<64>& whitePawns, std::bitset<64>& blackPawns,
-              std::bitset<64>& whiteRooks, std::bitset<64>& blackRooks,
-              std::bitset<64>& whiteBishops, std::bitset<64>& blackBishops,
-              std::bitset<64>& whiteQueen, std::bitset<64>& blackQueen,
-              std::bitset<64>& whiteKing, std::bitset<64>& blackKing,
-              std::bitset<64>& whitePieces, std::bitset<64>& blackPieces,
-              bool whiteToMove, std::bitset<64>& allPieces, std::bitset<64>& ownPieces);
+struct Board;
+Board board;
 
-std::bitset<64> getWhitePieces(const std::bitset<64>& whitePawns,
-                               const std::bitset<64>& whiteRooks,
-                               const std::bitset<64>& whiteKnights,
-                               const std::bitset<64>& whiteBishops,
-                               const std::bitset<64>& whiteQueen,
-                               const std::bitset<64>& whiteKing);
-
-std::bitset<64> getBlackPieces(const std::bitset<64>& blackPawns,
-                               const std::bitset<64>& blackRooks,
-                               const std::bitset<64>& blackKnights,
-                               const std::bitset<64>& blackBishops,
-                               const std::bitset<64>& blackQueen,
-                               const std::bitset<64>& blackKing);
-
-std::bitset<64> getAllPieces(const std::bitset<64>& whitePawns,
-                             const std::bitset<64>& whiteRooks,
-                             const std::bitset<64>& whiteKnights,
-                             const std::bitset<64>& whiteBishops,
-                             const std::bitset<64>& whiteQueen,
-                             const std::bitset<64>& whiteKing,
-                             const std::bitset<64>& blackPawns,
-                             const std::bitset<64>& blackRooks,
-                             const std::bitset<64>& blackKnights,
-                             const std::bitset<64>& blackBishops,
-                             const std::bitset<64>& blackQueen,
-                             const std::bitset<64>& blackKing);
+bool makeMove(std::string move, Board& board);
+std::string findBestMove(const Board& board, int depth);
 
 void uciLoop() {
     std::string line;
 
-    std::bitset<64> whitePawns(0x000000000000FF00ULL);
-    std::bitset<64> whiteRooks((1ULL << 0) | (1ULL << 7));
-    std::bitset<64> whiteKnights((1ULL << 1) | (1ULL << 6));
-    std::bitset<64> whiteBishops((1ULL << 2) | (1ULL << 5));
-    std::bitset<64> whiteQueen(1ULL << 3);
-    std::bitset<64> whiteKing(1ULL << 4);
-
-    std::bitset<64> blackPawns(0x00FF000000000000ULL);
-    std::bitset<64> blackRooks((1ULL << 56) | (1ULL << 63));
-    std::bitset<64> blackKnights((1ULL << 57) | (1ULL << 62));
-    std::bitset<64> blackBishops((1ULL << 58) | (1ULL << 61));
-    std::bitset<64> blackQueen(1ULL << 59);
-    std::bitset<64> blackKing(1ULL << 60);
-
-    bool whiteToMove = true;
+    board.whiteToMove = true;
 
     while (std::getline(std::cin, line)) {
         std::istringstream iss(line);
@@ -65,7 +21,7 @@ void uciLoop() {
         iss >> token;
 
         if (token == "uci") {
-            std::cout << "id name MyChessEngine\n";
+            std::cout << "id name GrandMater\n";
             std::cout << "id author ognjen-simic\n";
             std::cout << "uciok\n";
         }
@@ -73,66 +29,55 @@ void uciLoop() {
             std::cout << "readyok\n";
         }
         else if (token == "ucinewgame") {
-            whitePawns = 0x000000000000FF00ULL;
-            whiteRooks = (1ULL << 0) | (1ULL << 7);
-            whiteKnights = (1ULL << 1) | (1ULL << 6);
-            whiteBishops = (1ULL << 2) | (1ULL << 5);
-            whiteQueen = (1ULL << 3);
-            whiteKing = (1ULL << 4);
+            board.whitePawns = 0x000000000000FF00ULL;
+            board.whiteRooks = (1ULL << 0) | (1ULL << 7);
+            board.whiteKnights = (1ULL << 1) | (1ULL << 6);
+            board.whiteBishops = (1ULL << 2) | (1ULL << 5);
+            board.whiteQueen = (1ULL << 3);
+            board.whiteKing = (1ULL << 4);
 
-            blackPawns = 0x00FF000000000000ULL;
-            blackRooks = (1ULL << 56) | (1ULL << 63);
-            blackKnights = (1ULL << 57) | (1ULL << 62);
-            blackBishops = (1ULL << 58) | (1ULL << 61);
-            blackQueen = (1ULL << 59);
-            blackKing = (1ULL << 60);
+            board.blackPawns = 0x00FF000000000000ULL;
+            board.blackRooks = (1ULL << 56) | (1ULL << 63);
+            board.blackKnights = (1ULL << 57) | (1ULL << 62);
+            board.blackBishops = (1ULL << 58) | (1ULL << 61);
+            board.blackQueen = (1ULL << 59);
+            board.blackKing = (1ULL << 60);
 
-            whiteToMove = true;
+            board.whiteToMove = true;
         }
         else if (token == "position") {
             std::string next;
             iss >> next;
 
             if (next == "startpos") {
-                whitePawns = 0x000000000000FF00ULL;
-                whiteRooks = (1ULL << 0) | (1ULL << 7);
-                whiteKnights = (1ULL << 1) | (1ULL << 6);
-                whiteBishops = (1ULL << 2) | (1ULL << 5);
-                whiteQueen = (1ULL << 3);
-                whiteKing = (1ULL << 4);
+                board.whitePawns = 0x000000000000FF00ULL;
+                board.whiteRooks = (1ULL << 0) | (1ULL << 7);
+                board.whiteKnights = (1ULL << 1) | (1ULL << 6);
+                board.whiteBishops = (1ULL << 2) | (1ULL << 5);
+                board.whiteQueen = (1ULL << 3);
+                board.whiteKing = (1ULL << 4);
 
-                blackPawns = 0x00FF000000000000ULL;
-                blackRooks = (1ULL << 56) | (1ULL << 63);
-                blackKnights = (1ULL << 57) | (1ULL << 62);
-                blackBishops = (1ULL << 58) | (1ULL << 61);
-                blackQueen = (1ULL << 59);
-                blackKing = (1ULL << 60);
+                board.blackPawns = 0x00FF000000000000ULL;
+                board.blackRooks = (1ULL << 56) | (1ULL << 63);
+                board.blackKnights = (1ULL << 57) | (1ULL << 62);
+                board.blackBishops = (1ULL << 58) | (1ULL << 61);
+                board.blackQueen = (1ULL << 59);
+                board.blackKing = (1ULL << 60);
 
-                std::string moves;
-                iss >> moves;
+                board.whiteToMove = true;
+            }
+
+            std::string word;
+            if (iss >> word && word == "moves") {
                 std::string move;
                 while (iss >> move) {
-                    std::bitset<64> whitePieces = getWhitePieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing);
-                    std::bitset<64> blackPieces = getBlackPieces(blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-                    std::bitset<64> allPieces = getAllPieces(whitePawns, whiteRooks, whiteKnights, whiteBishops, whiteQueen, whiteKing,
-                                                             blackPawns, blackRooks, blackKnights, blackBishops, blackQueen, blackKing);
-                    std::bitset<64> ownPieces = whiteToMove ? whitePieces : blackPieces;
-
-                    makeMove(move, whiteKnights, blackKnights, whitePawns, blackPawns,
-                             whiteRooks, blackRooks, whiteBishops, blackBishops,
-                             whiteQueen, blackQueen, whiteKing, blackKing,
-                             whitePieces, blackPieces, whiteToMove, allPieces, ownPieces);
-
-                    whiteToMove = !whiteToMove;
+                    makeMove(move, board);
                 }
             }
         }
         else if (token == "go") {
-            if (whiteToMove) {
-                std::cout << "bestmove e2e4\n";
-            } else {
-                std::cout << "bestmove e7e5\n";
-            }
+            std::string bestMove = findBestMove(board, 3);
+            std::cout << "bestmove " << bestMove << "\n" << std::flush;
         }
         else if (token == "quit") {
             break;
