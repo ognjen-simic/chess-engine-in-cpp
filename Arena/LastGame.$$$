@@ -1,0 +1,19 @@
+[LastMove "55499388"]
+[Event "Computer chess game"]
+[Site "DESKTOP-EVH3JPF"]
+[Date "2025.07.17"]
+[Round "?"]
+[White "Korisnik"]
+[Black "Testengine"]
+[Result "*"]
+[BlackElo "2000"]
+[Time "15:12:43"]
+[WhiteElo "2400"]
+[TimeControl "0+5"]
+[Termination "unterminated"]
+[PlyCount "0"]
+[WhiteType "human"]
+[BlackType "program"]
+
+ *
+

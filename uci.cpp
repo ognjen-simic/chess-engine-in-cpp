@@ -44,6 +44,12 @@ void uciLoop() {
             board.blackKing = (1ULL << 60);
 
             board.whiteToMove = true;
+
+            board.whiteCanCastleKingside = true;
+            board.whiteCanCastleQueenside = true;
+            board.blackCanCastleKingside = true;
+            board.blackCanCastleQueenside = true;
+            board.en_passant = -1;
         }
         else if (token == "position") {
             std::string next;
@@ -65,6 +71,12 @@ void uciLoop() {
                 board.blackKing = (1ULL << 60);
 
                 board.whiteToMove = true;
+
+                board.whiteCanCastleKingside = true;
+                board.whiteCanCastleQueenside = true;
+                board.blackCanCastleKingside = true;
+                board.blackCanCastleQueenside = true;
+                board.en_passant = -1;
             }
 
             std::string word;

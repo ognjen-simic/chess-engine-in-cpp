@@ -396,6 +396,8 @@ bool makeMove(std::string move, Board& board)
     int to = notationToIndex(move.substr(2, 2));
     if (from == -1 || to == -1) return false;
 
+    if (!(board.getAllPieces()[from])) return false;
+
     bool isPromotion = move.length() == 5;
     char promotionPiece = isPromotion ? move[4] : '\0';
 
@@ -415,7 +417,7 @@ if (pinnedLines.count(from))
 
             std::bitset<64> thisKnight(1ULL << from);
             std::bitset<64> legalMoves = generateKnightMoves(thisKnight);
-            if (!legalMoves[to] || board.whiteKnights[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getWhitePieces()[to]) return false;
 
             Board newBoard = board;
@@ -461,7 +463,8 @@ if (pinnedLines.count(from))
 
             std::bitset<64> thisPawn(1ULL << from);
             std::bitset<64> legalMoves = generateWhitePawnMoves(thisPawn, board.getBlackPieces(), board.getAllPieces());
-            if (!legalMoves[to] || board.whitePawns[to]) return false;
+            if (!legalMoves[to]) return false;
+            if (!(board.getAllPieces()[from])) return false;
 
             if (from / 8 == 1 && to / 8 == 3)
             {
@@ -509,7 +512,7 @@ if (pinnedLines.count(from))
             board.en_passant = -1;
 
             std::bitset<64> legalMoves = generateRookMoves(from, board.getWhitePieces(), board.getAllPieces());
-            if (!legalMoves[to] || board.whiteRooks[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getWhitePieces()[to]) return false;
             if (from == notationToIndex("a1")) board.whiteCanCastleQueenside = false;
             else if (from == notationToIndex("h1")) board.whiteCanCastleKingside = false;
@@ -537,7 +540,7 @@ if (pinnedLines.count(from))
             board.en_passant = -1;
 
             std::bitset<64> legalMoves = generateBishopMoves(from, board.getWhitePieces(), board.getAllPieces());
-            if (!legalMoves[to] || board.whiteBishops[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getWhitePieces()[to]) return false;
 
             Board newBoard = board;
@@ -563,7 +566,7 @@ if (pinnedLines.count(from))
             board.en_passant = -1;
 
             std::bitset<64> legalMoves = generateQueenMoves(from, board.getWhitePieces(), board.getAllPieces());
-            if (!legalMoves[to] || board.whiteQueen[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getWhitePieces()[to]) return false;
 
             Board newBoard = board;
@@ -599,11 +602,11 @@ if (pinnedLines.count(from))
                     newBoard.whiteRooks.reset(notationToIndex("h1"));
                     newBoard.whiteRooks.set(notationToIndex("f1"));
 
-                    if (isKingInCheck(newBoard) || generateBlackAttacks(board)[notationToIndex("f1")]) return false;
+                    if (isKingInCheck(newBoard) || generateBlackAttacks(newBoard)[notationToIndex("f1")]) return false;
+                    newBoard.whiteCanCastleKingside = false;
+                    newBoard.whiteCanCastleQueenside = false;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
-                    board.whiteCanCastleKingside = false;
-                    board.whiteCanCastleQueenside = false;
                     return true;
                 }
             }
@@ -618,19 +621,17 @@ if (pinnedLines.count(from))
                     newBoard.whiteRooks.reset(notationToIndex("a1"));
                     newBoard.whiteRooks.set(notationToIndex("d1"));
 
-                    if (isKingInCheck(newBoard) || generateBlackAttacks(board)[notationToIndex("d1")]) return false;
+                    if (isKingInCheck(newBoard) || generateBlackAttacks(newBoard)[notationToIndex("d1")]) return false;
+                    newBoard.whiteCanCastleKingside = false;
+                    newBoard.whiteCanCastleQueenside = false;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
-                    board.whiteCanCastleKingside = false;
-                    board.whiteCanCastleQueenside = false;
-                    return true;
-
                     return true;
                 }
             }
 
             std::bitset<64> legalMoves = generateKingMoves(from, board.getWhitePieces(), board.getAllPieces()) & ~generateBlackAttacks(board);
-            if (!legalMoves[to] || board.whiteKing[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getWhitePieces()[to]) return false;
 
             Board newBoard = board;
@@ -664,7 +665,7 @@ if (pinnedLines.count(from))
 
             std::bitset<64> thisKnight(1ULL << from);
             std::bitset<64> legalMoves = generateKnightMoves(thisKnight);
-            if (!legalMoves[to] || board.blackKnights[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getBlackPieces()[to]) return false;
 
             Board newBoard = board;
@@ -687,6 +688,8 @@ if (pinnedLines.count(from))
         }
         else if (board.blackPawns[from])
         {
+            board.en_passant = -1;
+
             if (to == board.en_passant && to / 8 == 2)
             {
                 Board newBoard = board;
@@ -710,7 +713,8 @@ if (pinnedLines.count(from))
 
             std::bitset<64> thisPawn(1ULL << from);
             std::bitset<64> legalMoves = generateBlackPawnMoves(thisPawn, board.getWhitePieces(), board.getAllPieces());
-            if (!legalMoves[to] || board.blackPawns[to]) return false;
+            if (!legalMoves[to]) return false;
+            if (board.getBlackPieces()[to]) return false;
 
             if (from / 8 == 6 && to / 8 == 4)
             {
@@ -758,7 +762,7 @@ if (pinnedLines.count(from))
             board.en_passant = -1;
 
             std::bitset<64> legalMoves = generateRookMoves(from, board.getBlackPieces(), board.getAllPieces());
-            if (!legalMoves[to] || board.blackRooks[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getBlackPieces()[to]) return false;
             if (from == notationToIndex("a8")) board.blackCanCastleQueenside = false;
             else if (from == notationToIndex("h8")) board.blackCanCastleKingside = false;
@@ -786,7 +790,7 @@ if (pinnedLines.count(from))
             board.en_passant = -1;
 
             std::bitset<64> legalMoves = generateBishopMoves(from, board.getBlackPieces(), board.getAllPieces());
-            if (!legalMoves[to] || board.getBlackPieces()[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getBlackPieces()[to]) return false;
 
             Board newBoard = board;
@@ -812,7 +816,7 @@ if (pinnedLines.count(from))
             board.en_passant = -1;
 
             std::bitset<64> legalMoves = generateQueenMoves(from,board.getBlackPieces(), board.getAllPieces());
-            if (!legalMoves[to] || board.blackQueen[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getBlackPieces()[to]) return false;
 
             Board newBoard = board;
@@ -848,11 +852,11 @@ if (pinnedLines.count(from))
                     newBoard.blackRooks.reset(notationToIndex("h8"));
                     newBoard.blackRooks.set(notationToIndex("f8"));
 
-                    if (isKingInCheck(newBoard) || generateWhiteAttacks(board)[notationToIndex("f8")]) return false;
+                    if (isKingInCheck(newBoard) || generateWhiteAttacks(newBoard)[notationToIndex("f8")]) return false;
+                    newBoard.blackCanCastleKingside = false;
+                    newBoard.blackCanCastleQueenside = false;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
-                    board.blackCanCastleKingside = false;
-                    board.blackCanCastleQueenside = false;
                     return true;
                 }
             }
@@ -867,19 +871,17 @@ if (pinnedLines.count(from))
                     newBoard.blackRooks.reset(notationToIndex("a8"));
                     newBoard.blackRooks.set(notationToIndex("d8"));
 
-                    if (isKingInCheck(newBoard) || generateWhiteAttacks(board)[notationToIndex("d8")]) return false;
+                    if (isKingInCheck(newBoard) || generateWhiteAttacks(newBoard)[notationToIndex("d8")]) return false;
+                    newBoard.blackCanCastleKingside = false;
+                    newBoard.blackCanCastleQueenside = false;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
-                    board.blackCanCastleKingside = false;
-                    board.blackCanCastleQueenside = false;
-                    return true;
-
                     return true;
                 }
             }
 
             std::bitset<64> legalMoves = generateKingMoves(from, board.getBlackPieces(), board.getAllPieces()) & ~generateWhiteAttacks(board);
-            if (!legalMoves[to] || board.blackKing[to]) return false;
+            if (!legalMoves[to]) return false;
             if (board.getBlackPieces()[to]) return false;
 
             Board newBoard = board;
@@ -1013,6 +1015,75 @@ std::vector<std::string> generateLegalMoves(const Board& board)
                 }
             }
         }
+        if (board.whiteToMove) {
+
+        if (board.whiteCanCastleKingside &&
+            !board.getAllPieces()[notationToIndex("f1")] &&
+            !board.getAllPieces()[notationToIndex("g1")] &&
+            !isKingInCheck(board)) 
+        {
+        
+            Board newBoard = board;
+            newBoard.whiteKing.reset(notationToIndex("e1"));
+            newBoard.whiteKing.set(notationToIndex("f1"));
+            if (!generateBlackAttacks(newBoard)[notationToIndex("f1")] &&
+                !generateBlackAttacks(newBoard)[notationToIndex("g1")]) 
+            {
+                legalMoves.push_back("e1g1");
+            }
+        }
+
+        if (board.whiteCanCastleQueenside &&
+            !board.getAllPieces()[notationToIndex("b1")] &&
+            !board.getAllPieces()[notationToIndex("c1")] &&
+            !board.getAllPieces()[notationToIndex("d1")] &&
+            !isKingInCheck(board))
+        {
+
+            Board newBoard = board;
+            newBoard.whiteKing.reset(notationToIndex("e1"));
+            newBoard.whiteKing.set(notationToIndex("d1"));
+            if (!generateBlackAttacks(newBoard)[notationToIndex("d1")] &&
+                !generateBlackAttacks(newBoard)[notationToIndex("c1")]) 
+            {
+                legalMoves.push_back("e1c1");
+            }
+        }
+        } else 
+        {
+
+            if (board.blackCanCastleKingside &&
+                !board.getAllPieces()[notationToIndex("f8")] &&
+                !board.getAllPieces()[notationToIndex("g8")] &&
+                !isKingInCheck(board)) 
+            {
+
+               Board newBoard = board;
+                newBoard.blackKing.reset(notationToIndex("e8"));
+                newBoard.blackKing.set(notationToIndex("f8"));
+                if (!generateWhiteAttacks(newBoard)[notationToIndex("f8")] &&
+                    !generateWhiteAttacks(newBoard)[notationToIndex("g8")]) 
+                {
+                    legalMoves.push_back("e8g8");
+                }
+            }
+
+            if (board.blackCanCastleQueenside &&
+                !board.getAllPieces()[notationToIndex("b8")] &&
+                !board.getAllPieces()[notationToIndex("c8")] &&
+                !board.getAllPieces()[notationToIndex("d8")] &&
+                !isKingInCheck(board)) 
+            {
+                Board newBoard = board;
+                newBoard.blackKing.reset(notationToIndex("e8"));
+                newBoard.blackKing.set(notationToIndex("d8"));
+                if (!generateWhiteAttacks(newBoard)[notationToIndex("d8")] &&
+                    !generateWhiteAttacks(newBoard)[notationToIndex("c8")]) 
+                {
+                    legalMoves.push_back("e8c8");
+                }
+            }
+        }
     }
 
     for (const std::string& move : pseudoMoves)
@@ -1026,6 +1097,7 @@ std::vector<std::string> generateLegalMoves(const Board& board)
 
     return legalMoves;
 }
+
 
 int minimax(Board board, int depth, int alpha, int beta)
 {
