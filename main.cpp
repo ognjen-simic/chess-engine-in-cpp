@@ -911,6 +911,11 @@ if (pinnedLines.count(from))
     return false;
 }
 
+int mirrorVertical(int sq)
+{
+    return sq ^ 56;
+}
+
 int evaluatePosition(const Board& board) 
 {
     int score = 0;
@@ -930,6 +935,132 @@ int evaluatePosition(const Board& board)
     score += board.whiteQueen.count() * 900;
     score -= board.blackQueen.count() * 900;
 
+    score += generateWhiteAttacks(board).count() * 4;
+    score -= generateBlackAttacks(board).count() * 4;
+
+    int PawnTable[64] = {
+    0,   0,   0,   0,   0,   0,   0,   0,
+    5,  10,  10, -20, -20,  10,  10,   5,
+    5,  -5, -10,   0,   0, -10,  -5,   5,
+    0,   0,   0,  20,  20,   0,   0,   0,
+    5,   5,  10,  25,  25,  10,   5,   5,
+   10,  10,  20,  30,  30,  20,  10,  10,
+   50,  50,  50,  50,  50,  50,  50,  50,
+    0,   0,   0,   0,   0,   0,   0,   0
+};
+
+    int KnightTable[64] = {
+   -50, -40, -30, -30, -30, -30, -40, -50,
+   -40, -20,   0,   0,   0,   0, -20, -40,
+   -30,   0,  10,  15,  15,  10,   0, -30,
+   -30,   5,  15,  20,  20,  15,   5, -30,
+   -30,   0,  15,  20,  20,  15,   0, -30,
+   -30,   5,  10,  15,  15,  10,   5, -30,
+   -40, -20,   0,   5,   5,   0, -20, -40,
+   -50, -40, -30, -30, -30, -30, -40, -50
+};
+
+    int BishopTable[64] = {
+   -20, -10, -10, -10, -10, -10, -10, -20,
+   -10,   0,   0,   0,   0,   0,   0, -10,
+   -10,   0,   5,  10,  10,   5,   0, -10,
+   -10,   5,   5,  10,  10,   5,   5, -10,
+   -10,   0,  10,  10,  10,  10,   0, -10,
+   -10,  10,  10,  10,  10,  10,  10, -10,
+   -10,   5,   0,   0,   0,   0,   5, -10,
+   -20, -10, -10, -10, -10, -10, -10, -20
+};
+
+    int RookTable[64] = {
+     0,   0,   0,   5,   5,   0,   0,   0,
+    -5,   0,   0,   0,   0,   0,   0,  -5,
+    -5,   0,   0,   0,   0,   0,   0,  -5,
+    -5,   0,   0,   0,   0,   0,   0,  -5,
+    -5,   0,   0,   0,   0,   0,   0,  -5,
+    -5,   0,   0,   0,   0,   0,   0,  -5,
+     5,  10,  10,  10,  10,  10,  10,   5,
+     0,   0,   0,   0,   0,   0,   0,   0
+};
+
+    int QueenTable[64] = {
+   -20, -10, -10,  -5,  -5, -10, -10, -20,
+   -10,   0,   0,   0,   0,   0,   0, -10,
+   -10,   0,   5,   5,   5,   5,   0, -10,
+    -5,   0,   5,   5,   5,   5,   0,  -5,
+     0,   0,   5,   5,   5,   5,   0,  -5,
+   -10,   5,   5,   5,   5,   5,   0, -10,
+   -10,   0,   5,   0,   0,   0,   0, -10,
+   -20, -10, -10,  -5,  -5, -10, -10, -20
+};
+
+    int KingTable[64] = {
+   -30, -40, -40, -50, -50, -40, -40, -30,
+   -30, -40, -40, -50, -50, -40, -40, -30,
+   -30, -40, -40, -50, -50, -40, -40, -30,
+   -30, -40, -40, -50, -50, -40, -40, -30,
+   -20, -30, -30, -40, -40, -30, -30, -20,
+   -10, -20, -20, -20, -20, -20, -20, -10,
+    20,  20,   0,   0,   0,   0,  20,  20,
+    20,  30,  10,   0,   0,  10,  30,  20
+};
+    
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        if (board.whitePawns[sq])
+        {
+            score += PawnTable[sq];
+        }
+        if (board.blackPawns[sq])
+        {
+            score -= PawnTable[mirrorVertical(sq)];
+        }
+
+        if (board.whiteKnights[sq])
+        {
+            score += KnightTable[sq];
+        }
+        if (board.blackKnights[sq])
+        {
+            score -= KnightTable[mirrorVertical(sq)];
+        }
+
+        if (board.whiteBishops[sq])
+        {
+            score += BishopTable[sq];
+        }
+        if (board.blackBishops[sq])
+        {
+            score -= BishopTable[mirrorVertical(sq)];
+        }
+
+        if (board.whiteRooks[sq])
+        {
+            score += RookTable[sq];
+        }
+        if (board.blackRooks[sq])
+        {
+            score -= RookTable[mirrorVertical(sq)];
+        }
+
+        if (board.whiteQueen[sq])
+        {
+            score += QueenTable[sq];
+        }
+        if (board.blackQueen[sq])
+        {
+            score -= QueenTable[mirrorVertical(sq)];
+        }
+
+        if (board.whiteKing[sq])
+        {
+            score += KingTable[sq];
+        }
+        if (board.blackKing[sq])
+        {
+            score -= KingTable[mirrorVertical(sq)];
+        }
+    }
+    
     return score;
 }
 
@@ -1098,7 +1229,6 @@ std::vector<std::string> generateLegalMoves(const Board& board)
     return legalMoves;
 }
 
-
 int minimax(Board board, int depth, int alpha, int beta)
 {
     int score = evaluatePosition(board);
@@ -1109,6 +1239,10 @@ int minimax(Board board, int depth, int alpha, int beta)
 
     if (board.whiteToMove)
     {
+        if (isKingInCheck(board) && generateLegalMoves(board).empty())
+        {
+            return -100000;
+        }
         int best = -100000;
         for (const std::string move : generateLegalMoves(board))
         {
@@ -1129,6 +1263,10 @@ int minimax(Board board, int depth, int alpha, int beta)
     }
     else
     {
+        if (isKingInCheck(board) && generateLegalMoves(board).empty())
+        {
+            return 100000;
+        }
         int best = 100000;
         for (const std::string move : generateLegalMoves(board))
         {
