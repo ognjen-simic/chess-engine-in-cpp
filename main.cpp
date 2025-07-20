@@ -6,6 +6,8 @@
 #include <vector>
 #include <limits>
 #include "Board.h"
+#include <algorithm>
+#include <chrono>
 
 void printFullBoard(const Board& board)
 {
@@ -916,6 +918,53 @@ int mirrorVertical(int sq)
     return sq ^ 56;
 }
 
+int getPieceValue(char piece)
+{
+    switch (piece)
+    {
+        case 'P': case 'p': return 100;
+        case 'N': case 'n': return 320;
+        case 'B': case 'b': return 330;
+        case 'R': case 'r': return 500;
+        case 'Q': case 'q': return 900;
+        case 'K': case 'k': return 20000;
+        default: return 0;
+    }
+}
+
+bool isCheck(Board board, const std::string move)
+{
+    makeMove(move, board);
+    return isKingInCheck(board);
+}
+
+int scoreMove(const std::string& move, const Board& board)
+{
+    int from = notationToIndex(move.substr(0, 2));
+    int to = notationToIndex(move.substr(2, 2));
+    char attacker = board.getPieceAt(from);
+    char victim = board.getPieceAt(to);
+
+    int score = 0;
+
+    if (victim != '.')
+    {
+        score += 10000 + getPieceValue(victim) - getPieceValue(attacker);
+    }
+
+    if (move.length() == 5 && move[4] == 'q')
+    {
+        score += 8000;
+    }
+
+    if (isCheck(board, move))
+    {
+        score += 300;
+    }
+
+    return score;
+}
+
 int evaluatePosition(const Board& board) 
 {
     int score = 0;
@@ -935,8 +984,17 @@ int evaluatePosition(const Board& board)
     score += board.whiteQueen.count() * 900;
     score -= board.blackQueen.count() * 900;
 
-    score += generateWhiteAttacks(board).count() * 4;
-    score -= generateBlackAttacks(board).count() * 4;
+    score += generateWhiteAttacks(board).count() * 2;
+    score -= generateBlackAttacks(board).count() * 2;
+
+    if (board.whiteToMove && isKingInCheck(board))
+    {
+        score -= 30;
+    }
+    else if (!board.whiteToMove && isKingInCheck(board))
+    {
+        score += 30;
+    }
 
     int PawnTable[64] = {
     0,   0,   0,   0,   0,   0,   0,   0,
@@ -1232,17 +1290,21 @@ std::vector<std::string> generateLegalMoves(const Board& board)
 int minimax(Board board, int depth, int alpha, int beta)
 {
     int score = evaluatePosition(board);
-    if (depth == 0 || generateLegalMoves(board).empty())
+    if (depth == 0)
     {
         return score;
+    }
+    if (generateLegalMoves(board).empty())
+    {
+        if (isKingInCheck)
+        {
+            return board.whiteToMove ? -100000 : 100000;
+        }
+        else return 0;
     }
 
     if (board.whiteToMove)
     {
-        if (isKingInCheck(board) && generateLegalMoves(board).empty())
-        {
-            return -100000;
-        }
         int best = -100000;
         for (const std::string move : generateLegalMoves(board))
         {
@@ -1263,10 +1325,6 @@ int minimax(Board board, int depth, int alpha, int beta)
     }
     else
     {
-        if (isKingInCheck(board) && generateLegalMoves(board).empty())
-        {
-            return 100000;
-        }
         int best = 100000;
         for (const std::string move : generateLegalMoves(board))
         {
@@ -1286,38 +1344,50 @@ int minimax(Board board, int depth, int alpha, int beta)
     }
 }
 
-std::string findBestMove(const Board& board, int depth)
-{
-    int bestScore = board.whiteToMove ? -100000 : 100000;
+std::string findBestMove(const Board& board, int maxTimeMs) {
     std::string bestMove;
+    int bestScore = board.whiteToMove ? -100000 : 100000;
+    auto start = std::chrono::steady_clock::now();
 
-    auto moves = generateLegalMoves(board);
-    std::cerr << "Generated moves count: " << moves.size() << "\n";
+    for (int depth = 1; ; ++depth) {
+        std::string currentBestMove;
+        int currentBestScore = board.whiteToMove ? -100000 : 100000;
 
-     if (moves.empty())
-     {
-        std::cerr << "No legal moves found. Returning empty string.\n";
-        return "";
-     }
-    for (const std::string move : generateLegalMoves(board))
-    {
-        Board newBoard = board;
-        makeMove(move, newBoard);
+        std::vector<std::string> moves = generateLegalMoves(board);
 
-        int score = minimax(newBoard, depth - 1, -100000, 100000);
+        std::sort(moves.begin(), moves.end(), [&](const std::string& a, const std::string& b) {
+            return scoreMove(a, board) > scoreMove(b, board);
+        });
 
-        if (board.whiteToMove && score > bestScore)
-        {
-            bestScore = score;
-            bestMove = move;
+        for (const std::string& move : moves) {
+            Board newBoard = board;
+            makeMove(move, newBoard);
+            int score = minimax(newBoard, depth - 1, -100000, 100000);
+
+            if (board.whiteToMove && score > currentBestScore) {
+                currentBestScore = score;
+                currentBestMove = move;
+            } else if (!board.whiteToMove && score < currentBestScore) {
+                currentBestScore = score;
+                currentBestMove = move;
+            }
+
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() > maxTimeMs) {
+                std::cerr << "Time up at depth " << depth << "\n";
+                return bestMove.empty() ? currentBestMove : bestMove;
+            }
         }
-        else if (!board.whiteToMove && score < bestScore)
-        {
-            bestScore = score;
-            bestMove = move;
+
+        bestMove = currentBestMove;
+        bestScore = currentBestScore;
+
+        auto now = std::chrono::steady_clock::now();
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() > maxTimeMs) {
+            break;
         }
     }
-    std::cerr << "Best move found: " << bestMove << "\n";
+
     return bestMove;
 }
 

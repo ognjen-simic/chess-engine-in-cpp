@@ -3,6 +3,7 @@
 #include <bitset>
 #include <sstream>
 #include "Board.h"
+#include <chrono>
 
 struct Board;
 Board board;
@@ -88,7 +89,21 @@ void uciLoop() {
             }
         }
         else if (token == "go") {
-            std::string bestMove = findBestMove(board, 3);
+            int timeLeft = 5000;
+            std::string sub;
+
+            while (iss >> sub) {
+                if (sub == "wtime" && board.whiteToMove) {
+                    iss >> timeLeft;
+                } else if (sub == "btime" && !board.whiteToMove) {
+                    iss >> timeLeft;
+                }
+            }
+
+            int timeToMove = timeLeft / 30;
+            timeToMove = std::max(100, timeToMove);
+
+            std::string bestMove = findBestMove(board, timeToMove);
             std::cout << "bestmove " << bestMove << "\n" << std::flush;
         }
         else if (token == "quit") {
