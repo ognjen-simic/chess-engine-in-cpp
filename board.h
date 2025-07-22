@@ -24,6 +24,8 @@ struct Board
     bool whiteCanCastleQueenside = true;
     bool blackCanCastleKingside = true;
     bool blackCanCastleQueenside = true;
+    bool whiteCastled = false;
+    bool blackCastled = false;
     bool whiteToMove = true;
     int en_passant = -1;
 
@@ -32,6 +34,7 @@ std::bitset<64> getBlackPieces() const;
 std::bitset<64> getAllPieces() const;
 std::bitset<64> getOwnPieces(bool whiteToMove) const;
 std::bitset<64> getOpponentPieces(bool whiteToMove) const;
+char getPieceAt(int index) const;
 };
 
 #endif

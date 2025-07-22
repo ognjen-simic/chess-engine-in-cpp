@@ -1,8 +1,8 @@
 # C++ Chess Engine
 
-This is a chess engine I'm currently building in C++ as a personal learning project.
+This is a chess engine I'm currently building in C++ as a personal learning project. You can play against the engine on Lichess under the name "Grand_Mater_Bot".
 
-## Current Features
+## Features
 
 - Bitboard-based representation for each piece type
 - Legal move generation for every piece, castling and en passant
@@ -13,10 +13,12 @@ This is a chess engine I'm currently building in C++ as a personal learning proj
 - Checkmate and stalemate detection
 - Minimax algorithm with evaluation function
 - Time management for every move
-
-## Upcoming Features
-
+- Quiescence search for checks and captures
 - UCI connection to Lichess for playing against other bots
+
+## Left to do
+
+- Improving the engine`s performance
 
 ## How to Compile and Run
 

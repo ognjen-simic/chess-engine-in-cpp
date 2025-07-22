@@ -50,6 +50,8 @@ void uciLoop() {
             board.whiteCanCastleQueenside = true;
             board.blackCanCastleKingside = true;
             board.blackCanCastleQueenside = true;
+            bool whiteCastled = false;
+            bool blackCastled = false;
             board.en_passant = -1;
         }
         else if (token == "position") {
@@ -77,6 +79,8 @@ void uciLoop() {
                 board.whiteCanCastleQueenside = true;
                 board.blackCanCastleKingside = true;
                 board.blackCanCastleQueenside = true;
+                bool whiteCastled = false;
+                bool blackCastled = false;
                 board.en_passant = -1;
             }
 

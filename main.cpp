@@ -607,6 +607,7 @@ if (pinnedLines.count(from))
                     if (isKingInCheck(newBoard) || generateBlackAttacks(newBoard)[notationToIndex("f1")]) return false;
                     newBoard.whiteCanCastleKingside = false;
                     newBoard.whiteCanCastleQueenside = false;
+                    newBoard.whiteCastled = true;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
                     return true;
@@ -626,6 +627,7 @@ if (pinnedLines.count(from))
                     if (isKingInCheck(newBoard) || generateBlackAttacks(newBoard)[notationToIndex("d1")]) return false;
                     newBoard.whiteCanCastleKingside = false;
                     newBoard.whiteCanCastleQueenside = false;
+                    newBoard.whiteCastled =true;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
                     return true;
@@ -857,6 +859,7 @@ if (pinnedLines.count(from))
                     if (isKingInCheck(newBoard) || generateWhiteAttacks(newBoard)[notationToIndex("f8")]) return false;
                     newBoard.blackCanCastleKingside = false;
                     newBoard.blackCanCastleQueenside = false;
+                    newBoard.blackCastled = true;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
                     return true;
@@ -876,6 +879,7 @@ if (pinnedLines.count(from))
                     if (isKingInCheck(newBoard) || generateWhiteAttacks(newBoard)[notationToIndex("d8")]) return false;
                     newBoard.blackCanCastleKingside = false;
                     newBoard.blackCanCastleQueenside = false;
+                    newBoard.blackCastled = true;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
                     return true;
@@ -959,7 +963,7 @@ int scoreMove(const std::string& move, const Board& board)
 
     if (isCheck(board, move))
     {
-        score += 300;
+        score += 50;
     }
 
     return score;
@@ -994,6 +998,15 @@ int evaluatePosition(const Board& board)
     else if (!board.whiteToMove && isKingInCheck(board))
     {
         score += 30;
+    }
+
+    if (!board.whiteCastled && !board.whiteCanCastleKingside && !board.whiteCanCastleQueenside)
+    {
+        score -= 80;
+    }
+    if (!board.blackCastled && !board.blackCanCastleKingside && !board.blackCanCastleQueenside)
+    {
+        score += 80;
     }
 
     int PawnTable[64] = {
@@ -1287,12 +1300,137 @@ std::vector<std::string> generateLegalMoves(const Board& board)
     return legalMoves;
 }
 
+std::vector<std::string> generateCaptures(const Board& board)
+{
+    std::vector<std::string> allMoves = generateLegalMoves(board);
+    std::vector<std::string> captures;
+
+    for (const std::string& move : allMoves)
+    {
+        int to = notationToIndex(move.substr(2, 2));
+        if (board.whiteToMove)
+        {
+            if (board.getBlackPieces()[to])
+            {
+                captures.push_back(move);
+            }
+        }
+        else
+        {
+            if (board.getWhitePieces()[to])
+            {
+                captures.push_back(move);
+            }
+        }
+    }
+
+    return captures;
+}
+
+std::vector<std::string> generateChecks(const Board& board)
+{
+    std::vector<std::string> allMoves = generateLegalMoves(board);
+    std::vector<std::string> checks;
+
+    for (const std::string& move : allMoves)
+    {
+        Board newBoard = board;
+        makeMove(move, newBoard);
+
+        if (isKingInCheck(newBoard))
+        {
+            checks.push_back(move);
+        }
+    }
+
+    return checks;
+}
+
+int quiescence(Board board, int alpha, int beta, int qDepth = 0)
+{
+    if (qDepth > 4) return evaluatePosition(board);
+
+    int standPat = evaluatePosition(board);
+
+    if (board.whiteToMove)
+    {
+        if (standPat >= beta)
+        {
+            return beta;
+        }
+        if (alpha < standPat)
+        {
+            alpha = standPat;
+        }
+        
+        std::vector<std::string>captures = generateCaptures(board);
+        std::vector<std::string>checks = generateChecks(board);
+
+        std::vector<std::string> moves = captures;
+        moves.insert(moves.end(), checks.begin(), checks.end());
+
+        for (const std::string& move : moves)
+        {
+            Board newBoard = board;
+            makeMove(move, newBoard);
+
+            int score = quiescence(newBoard, alpha, beta, qDepth + 1);
+
+            if (score > alpha)
+            {
+                alpha = score;
+                if (alpha >= beta)
+                {
+                    break;
+                }
+            }
+        }
+        return alpha;
+    }
+
+    else
+    {
+        if (standPat <= alpha)
+        {
+            return alpha;
+        }
+        if (standPat < beta)
+        {
+            beta = standPat;
+        }
+
+        std::vector<std::string>captures = generateCaptures(board);
+        std::vector<std::string>checks = generateChecks(board);
+
+        std::vector<std::string> moves = captures;
+        moves.insert(moves.end(), checks.begin(), checks.end());
+
+        for (const std::string& move : moves)
+        {
+            Board newBoard = board;
+            makeMove(move, newBoard);
+
+            int score = quiescence(newBoard, alpha, beta, qDepth + 1);
+
+            if (score < beta)
+            {
+                beta = score;
+                if (beta <= alpha)
+                {
+                    break;
+                }
+            }
+        }
+        return beta;
+    }
+}
+
 int minimax(Board board, int depth, int alpha, int beta)
 {
     int score = evaluatePosition(board);
     if (depth == 0)
     {
-        return score;
+        return quiescence(board, alpha, beta);
     }
     if (generateLegalMoves(board).empty())
     {
