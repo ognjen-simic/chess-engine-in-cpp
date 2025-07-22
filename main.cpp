@@ -969,9 +969,57 @@ int scoreMove(const std::string& move, const Board& board)
     return score;
 }
 
+std::bitset<64> getRankInFront(const Board & board, int sq)
+{
+    int rank = sq / 8;
+    std::bitset<64> rankInFront;
+
+    if (board.whiteToMove)
+    {
+        switch (rank)
+        {
+        case 0: rankInFront = std::bitset<64> (0x000000000000FF00); break;
+        case 1: rankInFront = std::bitset<64> (0x0000000000FF0000); break;
+        default: rankInFront = std::bitset<64> (0x0000000000000000);
+        }
+    }
+    else
+    {
+        switch (rank)
+        {
+        case 7: rankInFront = std::bitset<64> (0x00FF000000000000); break;
+        case 6: rankInFront = std::bitset<64> (0x0000FF0000000000); break;
+        default: rankInFront = std::bitset<64> (0x0000000000000000);
+        }
+    }
+
+    return rankInFront;
+}
+
+bool isEndgame (const Board& board)
+{
+    int whiteMaterial = 0;
+    int blackMaterial = 0;
+    
+    whiteMaterial += board.whiteQueen.count() * 9;
+    whiteMaterial += board.whiteRooks.count() * 5;
+    whiteMaterial += board.whiteBishops.count() * 3;
+    whiteMaterial += board.whiteKnights.count() * 3;
+
+    blackMaterial += board.blackQueen.count() * 9;
+    blackMaterial += board.blackRooks.count() * 5;
+    blackMaterial += board.blackBishops.count() * 3;
+    blackMaterial += board.blackKnights.count() * 3;
+
+    int total = whiteMaterial + blackMaterial;
+
+    return total <= 14;
+}
+
 int evaluatePosition(const Board& board) 
 {
     int score = 0;
+    bool endgame = isEndgame(board);
 
     score += board.whitePawns.count() * 100;
     score -= board.blackPawns.count() * 100;
@@ -1009,7 +1057,17 @@ int evaluatePosition(const Board& board)
         score += 80;
     }
 
-    int PawnTable[64] = {
+    std::bitset<64> rankInFrontOfWhite = getRankInFront(board, board.whiteKing._Find_first());
+    std::bitset<64> whiteKingMoves = generateKingMoves(board.whiteKing._Find_first(), board.getOwnPieces(true), board.getAllPieces());
+    std::bitset<64> whiteShield = rankInFrontOfWhite & whiteKingMoves;
+    score += (board.whitePawns & whiteShield).count() * 20;
+
+    std::bitset<64> rankInFrontOfBlack = getRankInFront(board, board.blackKing._Find_first());
+    std::bitset<64> blackKingMoves = generateKingMoves(board.blackKing._Find_first(), board.getOwnPieces(false), board.getAllPieces());
+    std::bitset<64> blackShield = rankInFrontOfBlack & blackKingMoves;
+    score -= (board.blackPawns & blackShield).count() * 20;
+
+    const int PawnOpeningTable[64] = {
     0,   0,   0,   0,   0,   0,   0,   0,
     5,  10,  10, -20, -20,  10,  10,   5,
     5,  -5, -10,   0,   0, -10,  -5,   5,
@@ -1020,7 +1078,7 @@ int evaluatePosition(const Board& board)
     0,   0,   0,   0,   0,   0,   0,   0
 };
 
-    int KnightTable[64] = {
+    const int KnightOpeningTable[64] = {
    -50, -40, -30, -30, -30, -30, -40, -50,
    -40, -20,   0,   0,   0,   0, -20, -40,
    -30,   0,  10,  15,  15,  10,   0, -30,
@@ -1031,7 +1089,7 @@ int evaluatePosition(const Board& board)
    -50, -40, -30, -30, -30, -30, -40, -50
 };
 
-    int BishopTable[64] = {
+    const int BishopOpeningTable[64] = {
    -20, -10, -10, -10, -10, -10, -10, -20,
    -10,   0,   0,   0,   0,   0,   0, -10,
    -10,   0,   5,  10,  10,   5,   0, -10,
@@ -1042,7 +1100,7 @@ int evaluatePosition(const Board& board)
    -20, -10, -10, -10, -10, -10, -10, -20
 };
 
-    int RookTable[64] = {
+    const int RookOpeningTable[64] = {
      0,   0,   0,   5,   5,   0,   0,   0,
     -5,   0,   0,   0,   0,   0,   0,  -5,
     -5,   0,   0,   0,   0,   0,   0,  -5,
@@ -1053,7 +1111,7 @@ int evaluatePosition(const Board& board)
      0,   0,   0,   0,   0,   0,   0,   0
 };
 
-    int QueenTable[64] = {
+    const int QueenOpeningTable[64] = {
    -20, -10, -10,  -5,  -5, -10, -10, -20,
    -10,   0,   0,   0,   0,   0,   0, -10,
    -10,   0,   5,   5,   5,   5,   0, -10,
@@ -1064,7 +1122,7 @@ int evaluatePosition(const Board& board)
    -20, -10, -10,  -5,  -5, -10, -10, -20
 };
 
-    int KingTable[64] = {
+    const int KingOpeningTable[64] = {
    -30, -40, -40, -50, -50, -40, -40, -30,
    -30, -40, -40, -50, -50, -40, -40, -30,
    -30, -40, -40, -50, -50, -40, -40, -30,
@@ -1074,62 +1132,84 @@ int evaluatePosition(const Board& board)
     20,  20,   0,   0,   0,   0,  20,  20,
     20,  30,  10,   0,   0,  10,  30,  20
 };
-    
+
+    const int PawnEndgameTable[64] = {
+      0,   0,   0,   0,   0,   0,   0,   0,
+    178, 173, 158, 134, 147, 132, 165, 187,
+     94, 100,  85,  67,  56,  53,  82,  84,
+     32,  24,  13,   5,  -2,   4,  17,  17,
+     13,   9,  -3,  -7,  -7,  -8,   3,  -1,
+      4,   7,  -6,   1,   0,  -5,  -1,  -8,
+     13,   8,   8,  10,  13,   0,   2,  -7,
+      0,   0,   0,   0,   0,   0,   0,   0
+};
+
+    const int KnightEndgameTable[64] = {
+    -58, -38, -13, -28, -31, -27, -63, -99,
+    -25,  -8, -25,  -2,  -9, -25, -24, -52,
+    -24, -20,  10,   9,  -1,  -9, -19, -41,
+    -17,   3,  22,  22,  22,  11,   8, -18,
+    -18,  -6,  16,  25,  16,  17,   4, -18,
+    -23,  -3,  15,  24,  15,  16,   0, -23,
+    -29, -11,   3,   1,   5, -11, -14, -24,
+    -38, -29, -27, -43, -59, -56, -39, -31
+};
+
+    const int BishopEndgameTable[64] = {
+    -14, -21, -11,  -8,  -7,  -9, -17, -24,
+    -8,  -4,   7, -12, -3, -13, -4, -14,
+      2,  -8,   0,  -1, -2,   6,  0,   4,
+     -3,   9,  12,   9, 14,  10,  3,   2,
+     -6,   3,  13, 19,  7, 10,  -3,  -9,
+    -12, -3,   8, 10, 13,  3, -7, -15,
+    -14, -18, -7, -1,  4, -9, -15, -27,
+    -23, -9, -23, -5, -9, -16, -5, -17
+};
+
+    const int RookEndgameTable[64] = {
+    13, 10, 18, 15, 12, 12,   8,   5,
+    11, 13, 13, 11, -3,  3,   8,   3,
+     7,  7,  7,  5,  4, -3, -5, -3,
+     4,  3, 13,  1,  2,   1, -1,   2,
+     3,  5,  8,  4, -5, -6, -8, -11,
+    -4,  0, -5, -1, -7, -12, -8, -16,
+    -6, -6,  0,  2, -9, -9, -11, -3,
+    -9,  2,  3, -1, -5, -13,  4, -20
+};
+
+    const int KingEndgameTable[64] = {
+    -74, -35, -18, -18, -11, 15,  4, -17,
+    -12, 17, 14, 17, 17, 38, 23, 11,
+     10, 17, 23, 15, 20, 45, 44, 13,
+     -8, 22, 24, 27, 26, 33, 26,  3,
+    -18, -4, 21, 24, 27, 23,  9, -11,
+    -19, -3, 11, 21, 23, 16,  7, -9,
+    -27, -11,  4, 13, 14,  4, -5, -17,
+    -53, -34, -21, -11, -28, -14, -24, -43
+};
+
+    const int* pawnTable = endgame ? PawnEndgameTable : PawnOpeningTable;
+    const int* knightTable = endgame ? KnightEndgameTable : KnightOpeningTable;
+    const int* bishopTable = endgame ? BishopEndgameTable : BishopOpeningTable;
+    const int* rookTable   = endgame ? RookEndgameTable   : RookOpeningTable;
+    const int* queenTable  = QueenOpeningTable;
+    const int* kingTable   = endgame ? KingEndgameTable   : KingOpeningTable;
+
     for (int sq = 0; sq < 64; ++sq)
     {
-        if (board.whitePawns[sq])
-        {
-            score += PawnTable[sq];
-        }
-        if (board.blackPawns[sq])
-        {
-            score -= PawnTable[mirrorVertical(sq)];
-        }
+        if (board.whitePawns[sq])   score += pawnTable[sq];
+        if (board.whiteKnights[sq]) score += knightTable[sq];
+        if (board.whiteBishops[sq]) score += bishopTable[sq];
+        if (board.whiteRooks[sq])   score += rookTable[sq];
+        if (board.whiteQueen[sq])  score += queenTable[sq];
+        if (board.whiteKing[sq])    score += kingTable[sq];
 
-        if (board.whiteKnights[sq])
-        {
-            score += KnightTable[sq];
-        }
-        if (board.blackKnights[sq])
-        {
-            score -= KnightTable[mirrorVertical(sq)];
-        }
-
-        if (board.whiteBishops[sq])
-        {
-            score += BishopTable[sq];
-        }
-        if (board.blackBishops[sq])
-        {
-            score -= BishopTable[mirrorVertical(sq)];
-        }
-
-        if (board.whiteRooks[sq])
-        {
-            score += RookTable[sq];
-        }
-        if (board.blackRooks[sq])
-        {
-            score -= RookTable[mirrorVertical(sq)];
-        }
-
-        if (board.whiteQueen[sq])
-        {
-            score += QueenTable[sq];
-        }
-        if (board.blackQueen[sq])
-        {
-            score -= QueenTable[mirrorVertical(sq)];
-        }
-
-        if (board.whiteKing[sq])
-        {
-            score += KingTable[sq];
-        }
-        if (board.blackKing[sq])
-        {
-            score -= KingTable[mirrorVertical(sq)];
-        }
+        if (board.blackPawns[sq])   score -= pawnTable[mirrorVertical(sq)];
+        if (board.blackKnights[sq]) score -= knightTable[mirrorVertical(sq)];
+        if (board.blackBishops[sq]) score -= bishopTable[mirrorVertical(sq)];
+        if (board.blackRooks[sq])   score -= rookTable[mirrorVertical(sq)];
+        if (board.blackQueen[sq])  score -= queenTable[mirrorVertical(sq)];
+        if (board.blackKing[sq])    score -= kingTable[mirrorVertical(sq)];
     }
     
     return score;
