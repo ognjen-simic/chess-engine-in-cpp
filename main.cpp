@@ -206,7 +206,7 @@ std::bitset<64> generateKingMoves(int square, std::bitset<64> ownPieces, std::bi
     return moves;
 }
 
- int notationToIndex(const std::string& notation)
+int notationToIndex(const std::string& notation)
  {
     if (notation.length() != 2) return -1;
 
@@ -221,7 +221,7 @@ std::bitset<64> generateKingMoves(int square, std::bitset<64> ownPieces, std::bi
     return rankIndex * 8 + fileIndex;
  }
 
- std::string indexToNotation(int index)
+std::string indexToNotation(int index)
 {
     if (index < 0 || index >= 64) return "";
 
@@ -314,6 +314,11 @@ std::bitset<64> generateBlackAttacks(const Board& board)
 std::map<int, std::bitset<64>> getPinnedPieces(const Board& board)
     {
     int kingSquare = (board.whiteToMove ? board.whiteKing : board.blackKing)._Find_first();
+
+    if (kingSquare >= 64) {
+        std::cerr << "Error: King not found on board!" << std::endl;
+        return std::map<int, std::bitset<64>>();  // Return empty map
+    }
 
     std::bitset<64> enemyBishops = board.whiteToMove ? board.blackBishops : board.whiteBishops;
     std::bitset<64> enemyRooks = board.whiteToMove ? board.blackRooks : board.whiteRooks;
@@ -1015,9 +1020,30 @@ int gamePhase(const Board& board)
     return phase;
 }
 
+std::bitset<64> getSecondRing(int kingSq, const Board& board, bool isWhiteKing)
+{
+    std::bitset<64> firstRing = generateKingMoves(kingSq, board.getOwnPieces(isWhiteKing), board.getAllPieces());
+    std::bitset<64> secondRing;
+
+    for (int sq = 0; sq < 64; ++sq)
+    {
+        if (firstRing[sq])
+        {
+            secondRing |= generateKingMoves(sq, board.getOwnPieces(isWhiteKing), board.getAllPieces());
+        }
+    }
+
+    secondRing.reset(kingSq);
+    secondRing &= ~firstRing;
+
+    return secondRing;
+}
+
 int evaluatePosition(const Board& board) 
 {
     int score = 0;
+    int phase = gamePhase(board);
+    double blend = static_cast<double>(phase) / MAX_PHASE;
 
     score += board.whitePawns.count() * 100;
     score -= board.blackPawns.count() * 100;
@@ -1055,15 +1081,31 @@ int evaluatePosition(const Board& board)
         score += 80;
     }
 
+    int castlingBonus = static_cast<int>(blend * 70);
+    if (board.whiteKing._Find_first() == notationToIndex("g1"))
+    {
+        score += castlingBonus;
+    }
+    if (board.blackKing._Find_first() == notationToIndex("g8"))
+    {
+        score -= castlingBonus;
+    }
+
+    int kingShieldWeight = static_cast<int> (blend * 50 + (1.0 - blend) * 10);
+
     std::bitset<64> rankInFrontOfWhite = getRankInFront(board, board.whiteKing._Find_first());
     std::bitset<64> whiteKingMoves = generateKingMoves(board.whiteKing._Find_first(), board.getOwnPieces(true), board.getAllPieces());
     std::bitset<64> whiteShield = rankInFrontOfWhite & whiteKingMoves;
-    score += (board.whitePawns & whiteShield).count() * 20;
+    int numShieldPawnsWhite = (board.whitePawns & whiteShield).count();
+    score += numShieldPawnsWhite * kingShieldWeight;
+    score -= (3 - numShieldPawnsWhite) * (kingShieldWeight / 2);
 
     std::bitset<64> rankInFrontOfBlack = getRankInFront(board, board.blackKing._Find_first());
     std::bitset<64> blackKingMoves = generateKingMoves(board.blackKing._Find_first(), board.getOwnPieces(false), board.getAllPieces());
     std::bitset<64> blackShield = rankInFrontOfBlack & blackKingMoves;
-    score -= (board.blackPawns & blackShield).count() * 20;
+    int numShieldPawnsBlack = (board.blackPawns & blackShield).count();
+    score -= numShieldPawnsBlack * kingShieldWeight;
+    score -= (3 - numShieldPawnsBlack) * (kingShieldWeight / 2);
 
     const int PawnOpeningTable[64] = {
     0,   0,   0,   0,   0,   0,   0,   0,
@@ -1186,9 +1228,6 @@ int evaluatePosition(const Board& board)
     -53, -34, -21, -11, -28, -14, -24, -43
 };
 
-    int phase = gamePhase(board);
-    double blend = static_cast<double>(phase) / MAX_PHASE;
-
     for (int sq = 0; sq < 64; ++sq)
     {
         if (board.whitePawns[sq])   score += static_cast<int> (blend * PawnOpeningTable[sq] + (1.0 - blend) * PawnEndgameTable[sq]);
@@ -1210,6 +1249,106 @@ int evaluatePosition(const Board& board)
 
         if (board.blackKing[sq])    score -= static_cast<int> (blend * KingOpeningTable[mirrorVertical(sq)] +
                                                                        (1.0 - blend) * KingEndgameTable[mirrorVertical(sq)]);
+
+        std::bitset<64> piecesCloseToWhiteKing = whiteKingMoves & board.getBlackPieces();
+        std::bitset<64> piecesCloseToBlackKing = blackKingMoves & board.getWhitePieces();
+
+        if (piecesCloseToWhiteKing[sq])
+        {
+            if (board.blackQueen[sq])
+            {
+                score -= 200;
+            }
+            else if (board.blackRooks[sq])
+            {
+                score -= 130;
+            }
+            else if (board.blackBishops[sq])
+            {
+                score -= 80;
+            }
+            else if (board.blackKnights[sq])
+            {
+                score -= 80;
+            }
+            else if (board.blackPawns[sq])
+            {
+                score -= 50;
+            }
+        }
+        if (piecesCloseToBlackKing[sq])
+        {
+            if (board.whiteQueen[sq])
+            {
+                score += 200;
+            }
+            else if (board.whiteRooks[sq])
+            {
+                score += 130;
+            }
+            else if (board.whiteBishops[sq])
+            {
+                score += 80;
+            }
+            else if (board.whiteKnights[sq])
+            {
+                score += 80;
+            }
+            else if (board.whitePawns[sq])
+            {
+                score += 50;
+            }
+        }
+
+        std::bitset<64> whiteSecondRing = getSecondRing(board.whiteKing._Find_first(), board, true);
+        std::bitset<64> blackSecondRing = getSecondRing(board.blackKing._Find_first(), board, false);
+
+        if (whiteSecondRing[sq])
+        {
+            if (board.blackQueen[sq])
+            {
+                score -= 150;
+            }
+            else if (board.blackRooks[sq])
+            {
+                score -= 80;
+            }
+            else if (board.blackBishops[sq])
+            {
+                score -= 50;
+            }
+            else if (board.blackKnights[sq])
+            {
+                score -= 50;
+            }
+            else if (board.blackPawns[sq])
+            {
+                score -= 20;
+            }
+        }
+        if (blackSecondRing[sq])
+        {
+            if (board.whiteQueen[sq])
+            {
+                score += 150;
+            }
+            else if (board.whiteRooks[sq])
+            {
+                score += 80;
+            }
+            else if (board.whiteBishops[sq])
+            {
+                score += 50;
+            }
+            else if (board.whiteKnights[sq])
+            {
+                score += 50;
+            }
+            else if (board.whitePawns[sq])
+            {
+                score += 20;
+            }
+        }
     }
     
     return score;
@@ -1514,7 +1653,7 @@ int minimax(Board board, int depth, int alpha, int beta)
     }
     if (generateLegalMoves(board).empty())
     {
-        if (isKingInCheck)
+        if (isKingInCheck(board))
         {
             return board.whiteToMove ? -100000 : 100000;
         }
