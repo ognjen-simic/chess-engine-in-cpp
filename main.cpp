@@ -996,30 +996,28 @@ std::bitset<64> getRankInFront(const Board & board, int sq)
     return rankInFront;
 }
 
-bool isEndgame (const Board& board)
+int MAX_PHASE = 24;
+
+int gamePhase(const Board& board)
 {
-    int whiteMaterial = 0;
-    int blackMaterial = 0;
-    
-    whiteMaterial += board.whiteQueen.count() * 9;
-    whiteMaterial += board.whiteRooks.count() * 5;
-    whiteMaterial += board.whiteBishops.count() * 3;
-    whiteMaterial += board.whiteKnights.count() * 3;
+    int phase = 0;
 
-    blackMaterial += board.blackQueen.count() * 9;
-    blackMaterial += board.blackRooks.count() * 5;
-    blackMaterial += board.blackBishops.count() * 3;
-    blackMaterial += board.blackKnights.count() * 3;
+    phase += board.whiteQueen.count() * 4;
+    phase += board.whiteRooks.count() * 2;
+    phase += board.whiteBishops.count() * 1;
+    phase += board.whiteKnights.count() * 1;
 
-    int total = whiteMaterial + blackMaterial;
+    phase += board.blackQueen.count() * 4;
+    phase += board.blackRooks.count() * 2;
+    phase += board.blackBishops.count() * 1;
+    phase += board.blackKnights.count() * 1;
 
-    return total <= 14;
+    return phase;
 }
 
 int evaluatePosition(const Board& board) 
 {
     int score = 0;
-    bool endgame = isEndgame(board);
 
     score += board.whitePawns.count() * 100;
     score -= board.blackPawns.count() * 100;
@@ -1188,28 +1186,30 @@ int evaluatePosition(const Board& board)
     -53, -34, -21, -11, -28, -14, -24, -43
 };
 
-    const int* pawnTable = endgame ? PawnEndgameTable : PawnOpeningTable;
-    const int* knightTable = endgame ? KnightEndgameTable : KnightOpeningTable;
-    const int* bishopTable = endgame ? BishopEndgameTable : BishopOpeningTable;
-    const int* rookTable   = endgame ? RookEndgameTable   : RookOpeningTable;
-    const int* queenTable  = QueenOpeningTable;
-    const int* kingTable   = endgame ? KingEndgameTable   : KingOpeningTable;
+    int phase = gamePhase(board);
+    double blend = static_cast<double>(phase) / MAX_PHASE;
 
     for (int sq = 0; sq < 64; ++sq)
     {
-        if (board.whitePawns[sq])   score += pawnTable[sq];
-        if (board.whiteKnights[sq]) score += knightTable[sq];
-        if (board.whiteBishops[sq]) score += bishopTable[sq];
-        if (board.whiteRooks[sq])   score += rookTable[sq];
-        if (board.whiteQueen[sq])  score += queenTable[sq];
-        if (board.whiteKing[sq])    score += kingTable[sq];
+        if (board.whitePawns[sq])   score += static_cast<int> (blend * PawnOpeningTable[sq] + (1.0 - blend) * PawnEndgameTable[sq]);
+        if (board.whiteKnights[sq]) score += static_cast<int> (blend * KnightOpeningTable[sq] + (1.0 - blend) * KnightEndgameTable[sq]);
+        if (board.whiteBishops[sq]) score += static_cast<int> (blend * BishopOpeningTable[sq] + (1.0 - blend) * BishopEndgameTable[sq]);
+        if (board.whiteRooks[sq])   score += static_cast<int> (blend * RookOpeningTable[sq] + (1.0 - blend) * RookEndgameTable[sq]);
+        if (board.whiteQueen[sq])  score += QueenOpeningTable[sq];
+        if (board.whiteKing[sq])    score += static_cast<int> (blend * KingOpeningTable[sq] + (1.0 - blend) * KingEndgameTable[sq]);
 
-        if (board.blackPawns[sq])   score -= pawnTable[mirrorVertical(sq)];
-        if (board.blackKnights[sq]) score -= knightTable[mirrorVertical(sq)];
-        if (board.blackBishops[sq]) score -= bishopTable[mirrorVertical(sq)];
-        if (board.blackRooks[sq])   score -= rookTable[mirrorVertical(sq)];
-        if (board.blackQueen[sq])  score -= queenTable[mirrorVertical(sq)];
-        if (board.blackKing[sq])    score -= kingTable[mirrorVertical(sq)];
+        if (board.blackPawns[sq])   score -= static_cast<int> (blend * PawnOpeningTable[mirrorVertical(sq)] +
+                                                                       (1.0 - blend) * PawnEndgameTable[mirrorVertical(sq)]);
+        if (board.blackKnights[sq]) score -= static_cast<int> (blend * KnightOpeningTable[mirrorVertical(sq)] +
+                                                                       (1.0 - blend) * KnightEndgameTable[mirrorVertical(sq)]);
+        if (board.blackBishops[sq]) score -= static_cast<int> (blend * BishopOpeningTable[mirrorVertical(sq)] +
+                                                                       (1.0 - blend) * BishopEndgameTable[mirrorVertical(sq)]);
+        if (board.blackRooks[sq])   score -= static_cast<int> (blend * RookOpeningTable[mirrorVertical(sq)] +
+                                                                       (1.0 - blend) * RookEndgameTable[mirrorVertical(sq)]);
+        if (board.blackQueen[sq])  score -= QueenOpeningTable[mirrorVertical(sq)];
+
+        if (board.blackKing[sq])    score -= static_cast<int> (blend * KingOpeningTable[mirrorVertical(sq)] +
+                                                                       (1.0 - blend) * KingEndgameTable[mirrorVertical(sq)]);
     }
     
     return score;
