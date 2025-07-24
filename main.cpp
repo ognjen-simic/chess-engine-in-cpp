@@ -8,6 +8,7 @@
 #include "Board.h"
 #include <algorithm>
 #include <chrono>
+#include "zobrist.h"
 
 void printFullBoard(const Board& board)
 {
@@ -442,6 +443,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard; 
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -458,6 +460,7 @@ if (pinnedLines.count(from))
                 if (isKingInCheck(newBoard)) return false;
                 board = newBoard;
                 board.whiteToMove = !board.whiteToMove;
+                board.hash = Zobrist::computeHash(board);
                 return true;
             }
             else board.en_passant = -1;
@@ -511,6 +514,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -539,6 +543,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -565,6 +570,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -591,6 +597,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -615,6 +622,7 @@ if (pinnedLines.count(from))
                     newBoard.whiteCastled = true;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
+                    board.hash = Zobrist::computeHash(board);
                     return true;
                 }
             }
@@ -635,6 +643,7 @@ if (pinnedLines.count(from))
                     newBoard.whiteCastled =true;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
+                    board.hash = Zobrist::computeHash(board);
                     return true;
                 }
             }
@@ -661,6 +670,8 @@ if (pinnedLines.count(from))
 
             board.whiteCanCastleKingside = false;
             board.whiteCanCastleQueenside = false;
+
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -692,6 +703,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -710,6 +722,7 @@ if (pinnedLines.count(from))
                 if (isKingInCheck(newBoard)) return false;
                 board = newBoard;
                 board.whiteToMove = !board.whiteToMove;
+                board.hash = Zobrist::computeHash(board);
                 return true;
             }
             else board.en_passant = -1;
@@ -763,6 +776,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -791,6 +805,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -817,6 +832,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -843,6 +859,7 @@ if (pinnedLines.count(from))
             if (isKingInCheck(newBoard)) return false;
             else board = newBoard;
             board.whiteToMove = !board.whiteToMove;
+            board.hash = Zobrist::computeHash(board);
 
             return true;
         }
@@ -867,6 +884,7 @@ if (pinnedLines.count(from))
                     newBoard.blackCastled = true;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
+                    board.hash = Zobrist::computeHash(board);
                     return true;
                 }
             }
@@ -887,6 +905,7 @@ if (pinnedLines.count(from))
                     newBoard.blackCastled = true;
                     board = newBoard;
                     board.whiteToMove = !board.whiteToMove;
+                    board.hash = Zobrist::computeHash(board);
                     return true;
                 }
             }
@@ -914,10 +933,11 @@ if (pinnedLines.count(from))
             board.blackCanCastleKingside = false;
             board.blackCanCastleQueenside = false;
 
+            board.hash = Zobrist::computeHash(board);
+
             return true;
         }
     }
-
 
     return false;
 }
@@ -1750,6 +1770,7 @@ std::string findBestMove(const Board& board, int maxTimeMs) {
 
 int main()
 {
+    Zobrist::initializeKeys();
     uciLoop();
     return 0;
 }
