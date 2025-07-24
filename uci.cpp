@@ -4,6 +4,7 @@
 #include <sstream>
 #include "Board.h"
 #include <chrono>
+#include "zobrist.h"
 
 struct Board;
 Board board;
@@ -53,6 +54,7 @@ void uciLoop() {
             bool whiteCastled = false;
             bool blackCastled = false;
             board.en_passant = -1;
+            board.hash = Zobrist::computeHash(board);
         }
         else if (token == "position") {
             std::string next;
@@ -82,6 +84,7 @@ void uciLoop() {
                 bool whiteCastled = false;
                 bool blackCastled = false;
                 board.en_passant = -1;
+                board.hash = Zobrist::computeHash(board);
             }
 
             std::string word;

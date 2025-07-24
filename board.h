@@ -28,6 +28,7 @@ struct Board
     bool blackCastled = false;
     bool whiteToMove = true;
     int en_passant = -1;
+    uint64_t hash = 0;
 
 std::bitset<64> getWhitePieces() const;
 std::bitset<64> getBlackPieces() const;
