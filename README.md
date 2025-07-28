@@ -1,6 +1,6 @@
 # C++ Chess Engine
 
-This is a chess engine I'm currently building in C++ as a personal learning project. You can play against the engine on Lichess under the name "Grand_Mater_Bot".
+This is a chess engine I'm currently building in C++ as a personal learning project. You can play against the engine on Lichess under the name "Grand_Mater_Bot". The bot is currently not online 24/7.
 
 ## Features
 
