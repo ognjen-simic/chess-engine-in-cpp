@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <chrono>
 #include "zobrist.h"
+#include "tt.h"
 
 void printFullBoard(const Board& board)
 {
@@ -1587,14 +1588,27 @@ std::vector<std::string> generateChecks(const Board& board)
 
 int quiescence(Board board, int alpha, int beta, int qDepth = 0)
 {
+    int origAlpha = alpha;
+    int origBeta = beta;
+
+    int ttScore;
+    std::string ttBestMove;
+    if (probeTT(board.hash, qDepth, alpha, beta, ttScore, ttBestMove))
+    {
+        return ttScore;
+    }
+
     if (qDepth > 4) return evaluatePosition(board);
 
     int standPat = evaluatePosition(board);
+
+    std::string bestMoveFound = "";
 
     if (board.whiteToMove)
     {
         if (standPat >= beta)
         {
+            storeTT(board.hash, qDepth, beta, LOWERBOUND, bestMoveFound);
             return beta;
         }
         if (alpha < standPat)
@@ -1618,12 +1632,20 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
             if (score > alpha)
             {
                 alpha = score;
+                bestMoveFound = move;
                 if (alpha >= beta)
                 {
                     break;
                 }
             }
         }
+        TTFlag flag;
+        if (alpha <= origAlpha) flag = UPPERBOUND;
+        else if (alpha >= origBeta) flag = LOWERBOUND;
+        else flag = EXACT;
+
+        storeTT(board.hash, qDepth, alpha, flag, bestMoveFound);
+
         return alpha;
     }
 
@@ -1631,6 +1653,7 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
     {
         if (standPat <= alpha)
         {
+            storeTT(board.hash, qDepth, alpha, UPPERBOUND, bestMoveFound);
             return alpha;
         }
         if (standPat < beta)
@@ -1654,18 +1677,37 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
             if (score < beta)
             {
                 beta = score;
+                bestMoveFound = move;
                 if (beta <= alpha)
                 {
                     break;
                 }
             }
         }
+
+        TTFlag flag;
+        if (beta <= origAlpha) flag = UPPERBOUND;
+        else if (beta >= origBeta) flag = LOWERBOUND;
+        else flag = EXACT;
+
+        storeTT(board.hash, qDepth, beta, flag, bestMoveFound);
+
         return beta;
     }
 }
 
 int minimax(Board board, int depth, int alpha, int beta)
 {
+    int origAlpha = alpha;
+    int origBeta = beta;    
+    
+    int ttScore;
+    std::string ttBestMove;
+    if (probeTT(board.hash, depth, alpha, beta, ttScore, ttBestMove))
+    {
+        return ttScore;
+    }
+
     int score = evaluatePosition(board);
     if (depth == 0)
     {
@@ -1680,6 +1722,8 @@ int minimax(Board board, int depth, int alpha, int beta)
         else return 0;
     }
 
+    std::string bestMoveFound = "";
+
     if (board.whiteToMove)
     {
         int best = -100000;
@@ -1690,7 +1734,11 @@ int minimax(Board board, int depth, int alpha, int beta)
 
             score = minimax(newBoard, depth - 1, alpha, beta);
 
-            best = std::max(best, score);
+            if (score > best)
+            {
+                best = score;
+                bestMoveFound = move;
+            }
             alpha = std::max(alpha, score);
 
             if (beta <= alpha)
@@ -1698,6 +1746,14 @@ int minimax(Board board, int depth, int alpha, int beta)
                 break;
             }
         }
+
+        TTFlag flag;
+        if (best <= origAlpha) flag = UPPERBOUND;
+        else if (best >= origBeta) flag = LOWERBOUND;
+        else flag = EXACT;
+
+        storeTT(board.hash, depth, best, flag, bestMoveFound);
+
         return best;
     }
     else
@@ -1709,7 +1765,11 @@ int minimax(Board board, int depth, int alpha, int beta)
             makeMove(move, newBoard);
             score = minimax(newBoard, depth - 1, alpha, beta);
 
-            best = std::min(best, score);
+            if (score < best)
+            {
+                best = score;
+                bestMoveFound = move;
+            }
             beta = std::min(beta, score);
 
             if (beta <= alpha)
@@ -1717,6 +1777,14 @@ int minimax(Board board, int depth, int alpha, int beta)
                 break;
             }
         }
+
+        TTFlag flag;
+        if (best <= origAlpha) flag = UPPERBOUND;
+        else if (best >= origBeta) flag = LOWERBOUND;
+        else flag = EXACT;
+
+        storeTT(board.hash, depth, best, flag, bestMoveFound);
+
         return best;
     }
 }

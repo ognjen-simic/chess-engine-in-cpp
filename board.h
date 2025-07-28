@@ -3,6 +3,7 @@
 
 #include <bitset>
 #include <string>
+#include <cstdint>
 
 struct Board
 {

@@ -14,6 +14,7 @@ This is a chess engine I'm currently building in C++ as a personal learning proj
 - Minimax algorithm with evaluation function
 - Time management for every move
 - Quiescence search for checks and captures
+- Transposition tables using zobrist hashing
 - UCI connection to Lichess for playing against other bots
 
 ## Left to do
