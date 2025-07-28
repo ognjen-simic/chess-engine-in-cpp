@@ -27,7 +27,7 @@ To compile and run:
 
 ```bash
 cd chess-engine-in-cpp
-g++ -std=c++17 main.cpp uci.cpp board.cpp -o engine.exe
+g++ -std=c++17 main.cpp uci.cpp board.cpp zobrist.cpp tt.cpp -o engine.exe
 .\engine.exe
 ```
 
