@@ -1060,7 +1060,107 @@ std::bitset<64> getSecondRing(int kingSq, const Board& board, bool isWhiteKing)
     return secondRing;
 }
 
-int evaluatePosition(const Board& board) 
+bool isPassedPawn(int sq, bool white,  const Board& board)
+{
+    std::bitset<64> enemyPawns = white ? board.blackPawns : board.whitePawns;
+    std::bitset<64> mask = 0ULL;
+
+    int file = sq % 8;
+    int rank = sq / 8;
+
+    for (int df = -1; df <= 1; ++df)
+    {
+        int f = file + df;
+        if (f < 0 || f > 7) continue;
+
+        if (white)
+        {
+            for (int r = rank + 1; r < 8; ++r)
+            {
+            int targetSq = r * 8 + f;
+            mask |= (1ULL << targetSq);
+            }
+        }
+        else
+        {
+            for (int r = rank - 1; r > 0; --r)
+            {
+            int targetSq = r * 8 + f;
+            mask |= (1ULL << targetSq);
+            }
+        }
+    }
+
+    return (enemyPawns & mask) == 0;
+}
+
+int pawnProtections(int sq, bool white, const Board& board)
+{
+    std::bitset<64> protSq = white ? constBlackPawnCaptures(sq) : constWhitePawnCaptures(sq);
+    std::bitset<64> ownPawns = white ? board.whitePawns : board.blackPawns;
+
+    if (sq / 8 > 1)
+    {
+        return (protSq & ownPawns).count();
+    }
+    return 1;
+}
+
+std::bitset<64> fileMask(int file)
+{
+    std::bitset<64> mask;
+
+    for (int rank = 1; rank < 7; ++rank)
+    {
+        mask.set(rank * 8 + file);
+     }
+
+    return mask;
+}
+
+bool isIsolatedPawn(int sq, bool white, const Board& board)
+{
+    int file = sq % 8;
+    std::bitset<64> ownPawns = white ? board.whitePawns : board.blackPawns;
+
+    bool leftHasPawn = false;
+    bool rightHasPawn = false;
+
+    if (file > 0)
+    {
+        leftHasPawn = (ownPawns & fileMask(file - 1)).any();
+    }
+    if (file < 7)
+    {
+        rightHasPawn = (ownPawns & fileMask(file + 1)).any();
+    }
+
+    return !(leftHasPawn || rightHasPawn);
+}
+
+int doubledPawnPenalty(bool white, const Board& board)
+{
+    std::bitset<64> pawns = white ? board.whitePawns : board.blackPawns;
+    int penalty = 0;
+
+    for (int file = 0; file < 8; ++file)
+    {
+        int count = 0;
+        for (int rank = 1; rank < 7; ++rank)
+        {
+            int sq = rank * 8 + file;
+            if (pawns[sq]) count++;
+        }
+
+        if (count > 1)
+        {
+            penalty += (count - 1) * 5;
+        }
+    }
+    return penalty;
+}
+
+int evaluatePosition(const Board& board)
 {
     int score = 0;
     int phase = gamePhase(board);
@@ -1370,6 +1470,24 @@ int evaluatePosition(const Board& board)
                 score += 20;
             }
         }
+        
+        if (isPassedPawn(sq, true, board))
+        {
+            score += 20;
+        }
+        if (isPassedPawn(sq, false, board))
+        {
+            score -= 20;
+        }
+    
+        score += 10 * pawnProtections(sq, true, board) * (1.0 - blend);
+        score -= 10 * pawnProtections(sq, false, board) * (1.0 - blend);
+
+        if (isIsolatedPawn(sq, true, board)) score -= 8 * (1.0 - blend);
+        if (isIsolatedPawn(sq, false, board)) score += 8 * (1.0 - blend);
+
+        score -= doubledPawnPenalty(true, board) * (1.0 - blend);
+        score += doubledPawnPenalty(false, board) * (1.0 - blend);
     }
     
     return score;
@@ -1682,7 +1800,10 @@ int minimax(Board board, int depth, int alpha, int beta)
     {
         return quiescence(board, alpha, beta);
     }
-    if (generateLegalMoves(board).empty())
+
+    std::vector<std::string> moves = generateLegalMoves(board);
+
+    if (moves.empty())
     {
         if (isKingInCheck(board))
         {
@@ -1691,12 +1812,17 @@ int minimax(Board board, int depth, int alpha, int beta)
         else return 0;
     }
 
+    std::sort(moves.begin(), moves.end(), [&](const std::string& a, const std::string& b) 
+    {
+        return scoreMove(a, board) > scoreMove(b, board);
+    });
+
     std::string bestMoveFound = "";
 
     if (board.whiteToMove)
     {
         int best = -100000;
-        for (const std::string move : generateLegalMoves(board))
+        for (const std::string move : moves)
         {
             Board newBoard = board;
             makeMove(move, newBoard);
@@ -1728,7 +1854,7 @@ int minimax(Board board, int depth, int alpha, int beta)
     else
     {
         int best = 100000;
-        for (const std::string move : generateLegalMoves(board))
+        for (const std::string move : moves)
         {
             Board newBoard = board;
             makeMove(move, newBoard);
@@ -1758,7 +1884,8 @@ int minimax(Board board, int depth, int alpha, int beta)
     }
 }
 
-std::string findBestMove(const Board& board, int maxTimeMs) {
+std::string findBestMove(const Board& board, int maxTimeMs)
+{
     std::string bestMove;
     int bestScore = board.whiteToMove ? -100000 : 100000;
     auto start = std::chrono::steady_clock::now();
@@ -1787,7 +1914,8 @@ std::string findBestMove(const Board& board, int maxTimeMs) {
             }
 
             auto now = std::chrono::steady_clock::now();
-            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() > maxTimeMs) {
+            if (std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() > maxTimeMs) 
+            {
                 std::cerr << "Time up at depth " << depth << "\n";
                 return bestMove.empty() ? currentBestMove : bestMove;
             }
@@ -1797,11 +1925,11 @@ std::string findBestMove(const Board& board, int maxTimeMs) {
         bestScore = currentBestScore;
 
         auto now = std::chrono::steady_clock::now();
-        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() > maxTimeMs) {
+        if (std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count() > maxTimeMs) 
+        {
             break;
         }
     }
-
     return bestMove;
 }
 
