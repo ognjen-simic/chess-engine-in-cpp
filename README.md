@@ -8,7 +8,7 @@ This is a chess engine I'm currently building in C++ as a personal learning proj
 - Legal move generation for every piece, castling and en passant
 - Check, checkmate and stalemate detection
 - Minimax algorithm with alpha-beta pruning
-- Evaluation with piece-square tables and king safety
+- Evaluation with piece-square tables, king safety and pawn structure
 - Time management for every move
 - Quiescence search for checks and captures
 - Transposition tables using zobrist hashing
