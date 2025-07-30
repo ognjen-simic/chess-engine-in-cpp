@@ -1588,27 +1588,14 @@ std::vector<std::string> generateChecks(const Board& board)
 
 int quiescence(Board board, int alpha, int beta, int qDepth = 0)
 {
-    int origAlpha = alpha;
-    int origBeta = beta;
-
-    int ttScore;
-    std::string ttBestMove;
-    if (probeTT(board.hash, qDepth, alpha, beta, ttScore, ttBestMove))
-    {
-        return ttScore;
-    }
-
     if (qDepth > 4) return evaluatePosition(board);
 
     int standPat = evaluatePosition(board);
-
-    std::string bestMoveFound = "";
 
     if (board.whiteToMove)
     {
         if (standPat >= beta)
         {
-            storeTT(board.hash, qDepth, beta, LOWERBOUND, bestMoveFound);
             return beta;
         }
         if (alpha < standPat)
@@ -1632,20 +1619,12 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
             if (score > alpha)
             {
                 alpha = score;
-                bestMoveFound = move;
                 if (alpha >= beta)
                 {
                     break;
                 }
             }
         }
-        TTFlag flag;
-        if (alpha <= origAlpha) flag = UPPERBOUND;
-        else if (alpha >= origBeta) flag = LOWERBOUND;
-        else flag = EXACT;
-
-        storeTT(board.hash, qDepth, alpha, flag, bestMoveFound);
-
         return alpha;
     }
 
@@ -1653,7 +1632,6 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
     {
         if (standPat <= alpha)
         {
-            storeTT(board.hash, qDepth, alpha, UPPERBOUND, bestMoveFound);
             return alpha;
         }
         if (standPat < beta)
@@ -1677,21 +1655,12 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
             if (score < beta)
             {
                 beta = score;
-                bestMoveFound = move;
                 if (beta <= alpha)
                 {
                     break;
                 }
             }
         }
-
-        TTFlag flag;
-        if (beta <= origAlpha) flag = UPPERBOUND;
-        else if (beta >= origBeta) flag = LOWERBOUND;
-        else flag = EXACT;
-
-        storeTT(board.hash, qDepth, beta, flag, bestMoveFound);
-
         return beta;
     }
 }

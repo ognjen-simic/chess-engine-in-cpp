@@ -42,22 +42,6 @@ namespace Zobrist
     {
         uint64_t hash = 0ULL;
 
-        const std::bitset<64> bitboards[12] = 
-        {
-            board.whitePawns, 
-            board.whiteKnights, 
-            board.whiteBishops,
-            board.whiteRooks,   
-            board.whiteQueen,  
-            board.whiteKing,   
-            board.blackPawns,  
-            board.blackKnights,
-            board.blackBishops, 
-            board.blackRooks,   
-            board.blackQueen,  
-            board.blackKing    
-        };
-
         for (int sq = 0; sq < 64; ++sq)
         {
             if (board.whitePawns[sq])   hash ^= pieceKeys[0][sq];
@@ -80,6 +64,7 @@ namespace Zobrist
         if (board.whiteCanCastleQueenside) castlingRights |= 1 << 1;
         if (board.blackCanCastleKingside)  castlingRights |= 1 << 2;
         if (board.blackCanCastleQueenside) castlingRights |= 1 << 3;
+        hash ^= castlingKeys[castlingRights];
 
         if (board.en_passant >= 0 && board.en_passant < 64)
         {

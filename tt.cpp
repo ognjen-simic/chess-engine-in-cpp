@@ -39,14 +39,14 @@ bool probeTT(uint64_t key, int depth, int alpha, int beta, int& score, std::stri
                 score = entry.score;
                 return true;
             case LOWERBOUND:
-                if (entry.score > alpha)
+                if (entry.score >= beta)
                 {
                     score = entry.score;
                     return true;
                 }
                 break;
             case UPPERBOUND:
-                if (entry.score < beta)
+                if (entry.score <= alpha)
                 {
                     score = entry.score;
                     return true;
