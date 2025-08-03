@@ -1,20 +1,20 @@
 # C++ Chess Engine
 
-This is a chess engine I built in C++ as a personal learning project. You can play against the engine on [Lichess](https://lichess.org/@/Grand_Mater_Bot) under the name "Grand_Mater_Bot".
+This is a chess engine I built in C++ as a personal learning project. You can play against the engine on [Lichess](https://lichess.org/@/Grand_Mater_Bot) under the name **"Grand_Mater_Bot"**.
 (**Note**: the bot is currently **not online 24/7**.)
 
 ## Features
 
-- Bitboard-based representation for each piece type
+- **Bitboard-based** representation for each piece type
 - Legal move generation for every piece, castling and en passant
 - User input using standard algebraic notation (**g1f3**)
 - Check, checkmate and stalemate detection
-- Minimax algorithm with alpha-beta pruning
-- Evaluation with piece-square tables, king safety and pawn structure
+- **Minimax** algorithm with **alpha-beta** pruning
+- Evaluation with **piece-square tables**, **king safety** and **pawn structure**
 - Time management for every move
-- Quiescence search for checks and captures
-- Transposition tables using zobrist hashing
-- UCI connection to **Lichess** for playing against other bots
+- **Quiescence search** for checks and captures
+- **Transposition tables** using **zobrist** hashing
+- **UCI** connection to **Lichess** for playing against other bots
 
 ## Possible updates in the future
 
@@ -22,7 +22,7 @@ This is a chess engine I built in C++ as a personal learning project. You can pl
 
 ## About the engine
 
-The engine's search is not very fast, since the move generation uses `std::string` instead of `uint16_t`. This can lead to the engine missing simple material wins in a few moves, but it also manages to play the best move sometimes. It often gets stuck in the search when it knows it´s about to lose, and proceeds to lose on time. The overall **elo rating** should be around **1600**.
+The engine's search is not very fast, since the move generation uses `std::string` instead of `uint16_t`. This can lead to the engine missing simple material wins in a few moves, but it also manages to play the best move sometimes. It often gets stuck in the search when it knows it´s about to lose, and proceeds to lose on time.
 
 ## How to Compile and Run
 
