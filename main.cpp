@@ -968,7 +968,10 @@ bool isCheck(Board board, const std::string move)
     return isKingInCheck(board);
 }
 
-int scoreMove(const std::string& move, const Board& board)
+constexpr int MAX_DEPTH = 64;
+std::string killerMoves[MAX_DEPTH][2];
+
+int scoreMove(const std::string& move, const Board& board, int depth)
 {
     int from = notationToIndex(move.substr(0, 2));
     int to = notationToIndex(move.substr(2, 2));
@@ -986,10 +989,10 @@ int scoreMove(const std::string& move, const Board& board)
     {
         score += 8000;
     }
-
-    if (isCheck(board, move))
+    if (victim == '.')
     {
-        score += 50;
+        if (killerMoves[depth][0] == move) score += 9000;
+        else if (killerMoves[depth][1] == move) score += 8000;
     }
 
     return score;
@@ -1574,6 +1577,28 @@ std::vector<std::string> generateLegalMoves(const Board& board)
                     else pseudoMoves.push_back(baseMove);
                 }
             }
+
+            int epSquare = board.en_passant;
+
+            if (epSquare != -1) 
+            {
+                if (white && (i / 8) == 4) 
+                {
+                    if (abs((epSquare % 8) - (i % 8)) == 1) 
+                    {
+                        std::string epMove = indexToNotation(i) + indexToNotation(epSquare);
+                        pseudoMoves.push_back(epMove);
+                    }
+                }
+                else if (!white && (i / 8) == 3)
+                {
+                    if (abs((epSquare % 8) - (i % 8)) == 1) 
+                    {
+                        std::string epMove = indexToNotation(i) + indexToNotation(epSquare);
+                        pseudoMoves.push_back(epMove);
+                    }
+                }
+            }
         }
         if (board.whiteToMove) {
 
@@ -1814,7 +1839,7 @@ int minimax(Board board, int depth, int alpha, int beta)
 
     std::sort(moves.begin(), moves.end(), [&](const std::string& a, const std::string& b) 
     {
-        return scoreMove(a, board) > scoreMove(b, board);
+        return scoreMove(a, board, depth) > scoreMove(b, board, depth);
     });
 
     std::string bestMoveFound = "";
@@ -1838,6 +1863,14 @@ int minimax(Board board, int depth, int alpha, int beta)
 
             if (beta <= alpha)
             {
+                if (board.getPieceAt(notationToIndex(move.substr(2, 2))) == '.') 
+                {
+                    if (killerMoves[depth][0] != move)
+                    {
+                        killerMoves[depth][1] = killerMoves[depth][0];
+                        killerMoves[depth][0] = move;
+                    }
+                }
                 break;
             }
         }
@@ -1869,6 +1902,14 @@ int minimax(Board board, int depth, int alpha, int beta)
 
             if (beta <= alpha)
             {
+                if (board.getPieceAt(notationToIndex(move.substr(2, 2))) == '.') 
+                {
+                    if (killerMoves[depth][0] != move)
+                    {
+                        killerMoves[depth][1] = killerMoves[depth][0];
+                        killerMoves[depth][0] = move;
+                    }
+                }
                 break;
             }
         }
@@ -1896,8 +1937,17 @@ std::string findBestMove(const Board& board, int maxTimeMs)
 
         std::vector<std::string> moves = generateLegalMoves(board);
 
+        std::string ttMove;
+        int ttScore;
+        if (probeTT(board.hash, depth, -100000, 100000, ttScore, ttMove)) {
+            auto it = std::find(moves.begin(), moves.end(), ttMove);
+            if (it != moves.end()) {
+                std::iter_swap(moves.begin(), it);
+            }
+        }
+
         std::sort(moves.begin(), moves.end(), [&](const std::string& a, const std::string& b) {
-            return scoreMove(a, board) > scoreMove(b, board);
+            return scoreMove(a, board, depth) > scoreMove(b, board, depth);
         });
 
         for (const std::string& move : moves) {
