@@ -7,7 +7,6 @@ This is a chess engine I built in C++ as a personal learning project. You can pl
 
 - **Bitboard-based** representation for each piece type
 - Legal move generation for every piece, castling and en passant
-- User input using standard algebraic notation (**g1f3**)
 - Check, checkmate and stalemate detection
 - **Minimax** algorithm with **alpha-beta** pruning
 - Evaluation with **piece-square tables**, **king safety** and **pawn structure**
