@@ -18,30 +18,33 @@ std::bitset<64> Board::getAllPieces() const
 std::bitset<64> Board::getOwnPieces(bool whiteToMove) const
 {
     return whiteToMove 
-    ? whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueen | whiteKing
-    : blackPawns | blackKnights | blackBishops |blackRooks | blackQueen | blackKing;
+    ? getWhitePieces()
+    : getBlackPieces();
 }
 
 std::bitset<64> Board::getOpponentPieces(bool whiteToMove) const {
 return whiteToMove
-    ? blackPawns | blackKnights | blackBishops | blackRooks | blackQueen | blackKing
-    : whitePawns | whiteKnights | whiteBishops | whiteRooks | whiteQueen | whiteKing;
+    ? getBlackPieces()
+    : getWhitePieces();
 }
 
 char Board::getPieceAt(int index) const {
-    for (int i = 0; i < 64; ++i) {
-        if (whitePawns[i] && i == index) return 'P';
-        if (blackPawns[i] && i == index) return 'p';
-        if (whiteKnights[i] && i == index) return 'N';
-        if (blackKnights[i] && i == index) return 'n';
-        if (whiteBishops[i] && i == index) return 'B';
-        if (blackBishops[i] && i == index) return 'b';
-        if (whiteRooks[i] && i == index) return 'R';
-        if (blackRooks[i] && i == index) return 'r';
-        if (whiteQueen[i] && i == index) return 'Q';
-        if (blackQueen[i] && i == index) return 'q';
-        if (whiteKing[i] && i == index) return 'K';
-        if (blackKing[i] && i == index) return 'k';
-    }
+
+    if (index < 0 || index >= 64) return '.';
+
+    if (whitePawns[index])   return 'P';
+    if (whiteKnights[index]) return 'N';
+    if (whiteBishops[index]) return 'B';
+    if (whiteRooks[index])   return 'R';
+    if (whiteQueen[index])   return 'Q';
+    if (whiteKing[index])    return 'K';
+
+    if (blackPawns[index])   return 'p';
+    if (blackKnights[index]) return 'n';
+    if (blackBishops[index]) return 'b';
+    if (blackRooks[index])   return 'r';
+    if (blackQueen[index])   return 'q';
+    if (blackKing[index])    return 'k';
+
     return '.';
 }

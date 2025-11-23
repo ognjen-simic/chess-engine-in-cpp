@@ -29,29 +29,32 @@ bool probeTT(uint64_t key, int depth, int alpha, int beta, int& score, std::stri
     size_t index = ttIndex(key);
     TTEntry& entry = ttTable[index];
 
-    if (entry.key == key && entry.depth >= depth)
+    if (entry.key == key)
     {
         bestMove = entry.bestmove;
 
-        switch (entry.flag)
+        if (entry.depth >= depth)
         {
-            case EXACT:
-                score = entry.score;
-                return true;
-            case LOWERBOUND:
-                if (entry.score >= beta)
-                {
+            switch (entry.flag)
+            {
+                case EXACT:
                     score = entry.score;
                     return true;
-                }
-                break;
-            case UPPERBOUND:
-                if (entry.score <= alpha)
-                {
-                    score = entry.score;
-                    return true;
-                }
-                break;
+                case LOWERBOUND:
+                    if (entry.score >= beta)
+                    {
+                        score = entry.score;
+                        return true;
+                    }
+                    break;
+                case UPPERBOUND:
+                    if (entry.score <= alpha)
+                    {
+                        score = entry.score;
+                        return true;
+                    }
+                    break;
+            }
         }
     }
 

@@ -12,17 +12,13 @@ This is a chess engine I built in C++ as a personal learning project. You can pl
 - **Minimax** algorithm with **alpha-beta** pruning
 - Evaluation with **piece-square tables**, **king safety** and **pawn structure**
 - Time management for every move
-- **Quiescence search** for checks and captures
+- **Quiescence search** for captures
 - **Transposition tables** using **zobrist** hashing
 - **UCI** connection to **Lichess** for playing against other bots
 
 ## Possible updates in the future
 
-- Improving the engine`s performance
-
-## About the engine
-
-The engine's search is not very fast, since the move generation uses `std::string` instead of `uint16_t`. This can lead to the engine missing simple material wins in a few moves, but it also manages to play the best move sometimes. It often gets stuck in the search when it knows it´s about to lose, and proceeds to lose on time.
+- Switching to **uint16_t** based moves instead of **std::string**. 
 
 ## How to Compile and Run
 
