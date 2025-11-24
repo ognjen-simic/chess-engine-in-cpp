@@ -765,6 +765,26 @@ int doubledPawnPenalty(bool white, const Board& board)
     return penalty;
 }
 
+int distance(int sq1, int sq2)
+{
+    int file1 = sq1 % 8;
+    int rank1 = sq1 / 8;
+    int file2 = sq2 % 8;
+    int rank2 = sq2 / 8;
+
+    return std::max(std::abs(file1 - file2), std::abs(rank1 - rank2));
+}
+
+int centerManhattanDistance(int sq)
+{
+    int file = sq % 8;
+    int rank = sq / 8;
+
+    int distFile = std::abs(2*file-7);
+    int distRank = std::abs(2*rank-7);
+    return distFile + distRank;
+}
+
 int evaluatePosition(const Board& board)
 {
     int whiteKingSq = board.whiteKing._Find_first();
@@ -1048,6 +1068,25 @@ int evaluatePosition(const Board& board)
         else if (board.whiteBishops[sq]) score += 10;
         else if (board.whiteKnights[sq]) score += 10;
         else if (board.whitePawns[sq]) score += 5;
+    }
+
+    int mopUpScore = 0;
+
+    if (score > 0)
+    {
+        int cmd = centerManhattanDistance(blackKingSq);
+        int md = distance(whiteKingSq, blackKingSq);
+        mopUpScore += (cmd * 4) + 10 * (14 - md);
+
+        score += static_cast<int>(mopUpScore * (1 - blend));
+    }
+    else if (score < 0)
+    {
+        int cmd = centerManhattanDistance(whiteKingSq);
+        int md = distance(blackKingSq, whiteKingSq);
+        mopUpScore += (cmd * 4) + 10 * (14 - md);
+
+        score -= static_cast<int>(mopUpScore * (1 - blend));
     }
 
     return score;
