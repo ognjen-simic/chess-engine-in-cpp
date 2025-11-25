@@ -15,10 +15,6 @@ This is a chess engine I built in C++ as a personal learning project. You can pl
 - **Transposition tables** using **zobrist** hashing
 - **UCI** connection to **Lichess** for playing against other bots
 
-## Possible updates in the future
-
-- Switching to **uint16_t** based moves instead of **std::string**. 
-
 ## How to Compile and Run
 
 Make sure you have a C++ compiler installed (`g++`).
@@ -27,6 +23,6 @@ To compile and run:
 
 ```bash
 cd chess-engine-in-cpp
-g++ -std=c++17 main.cpp uci.cpp board.cpp zobrist.cpp tt.cpp -o engine.exe
+g++ -O3 main.cpp uci.cpp board.cpp zobrist.cpp tt.cpp -o engine.exe
 .\engine.exe
 ```
