@@ -9,7 +9,7 @@ inline size_t ttIndex(uint64_t key)
     return key & (TT_SIZE - 1);
 }
 
-void storeTT(uint64_t key, int depth, int score, TTFlag flag, const std::string& bestMove)
+void storeTT(uint64_t key, int depth, int score, TTFlag flag, const uint16_t& bestMove)
 {
     size_t index = ttIndex(key);
     TTEntry& entry = ttTable[index];
@@ -24,7 +24,7 @@ void storeTT(uint64_t key, int depth, int score, TTFlag flag, const std::string&
     }
 }
 
-bool probeTT(uint64_t key, int depth, int alpha, int beta, int& score, std::string& bestMove)
+bool probeTT(uint64_t key, int depth, int alpha, int beta, int& score, uint16_t& bestMove)
 {
     size_t index = ttIndex(key);
     TTEntry& entry = ttTable[index];

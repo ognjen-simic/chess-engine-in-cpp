@@ -17,10 +17,10 @@ struct TTEntry
     int depth = 0;
     int score = 0;
     TTFlag flag;
-    std::string bestmove = "";
+    uint16_t bestmove = 0;
 };
 
-void storeTT(uint64_t key, int depth, int score, TTFlag flag, const std::string& bestMove);
-bool probeTT(uint64_t key, int depth, int alpha, int beta, int& score, std::string& bestMove);
+void storeTT(uint64_t key, int depth, int score, TTFlag flag, const uint16_t& bestMove);
+bool probeTT(uint64_t key, int depth, int alpha, int beta, int& score, uint16_t& bestMove);
 
 #endif

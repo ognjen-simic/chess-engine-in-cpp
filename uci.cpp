@@ -5,12 +5,15 @@
 #include "Board.h"
 #include <chrono>
 #include "zobrist.h"
+#include "move.h"
 
 struct Board;
 Board board;
 
-bool makeMove(std::string move, Board& board);
-std::string findBestMove(const Board& board, int depth);
+bool makeMove(Move move, Board& board);
+Move findBestMove(const Board& board, int depth);
+Move parseMove(const std::string& moveStr, const Board& board);
+std::string moveToUCI(Move m);
 
 void uciLoop() {
     std::string line;
@@ -91,7 +94,11 @@ void uciLoop() {
             if (iss >> word && word == "moves") {
                 std::string move;
                 while (iss >> move) {
-                    makeMove(move, board);
+                    Move m = parseMove(move, board);
+                    if (m != 0)
+                    {
+                        makeMove(m, board);
+                    }
                 }
             }
         }
@@ -110,8 +117,8 @@ void uciLoop() {
             int timeToMove = timeLeft / 30;
             timeToMove = std::max(100, timeToMove);
 
-            std::string bestMove = findBestMove(board, timeToMove);
-            std::cout << "bestmove " << bestMove << "\n" << std::flush;
+            Move bestMove = findBestMove(board, timeToMove);
+            std::cout << "bestmove " << moveToUCI(bestMove) << "\n" << std::flush;
         }
         else if (token == "quit") {
             break;
