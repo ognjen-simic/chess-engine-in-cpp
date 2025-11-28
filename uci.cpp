@@ -6,9 +6,12 @@
 #include <chrono>
 #include "zobrist.h"
 #include "move.h"
+#include <cstring>
 
 struct Board;
 Board board;
+
+extern int gameHistory [2][64][64];
 
 bool makeMove(Move move, Board& board);
 Move findBestMove(const Board& board, int depth);
@@ -58,6 +61,9 @@ void uciLoop() {
             bool blackCastled = false;
             board.en_passant = -1;
             board.hash = Zobrist::computeHash(board);
+            board.history.clear();
+            board.history.push_back(board.hash);
+            memset(gameHistory, 0, sizeof(gameHistory));
         }
         else if (token == "position") {
             std::string next;
@@ -88,6 +94,9 @@ void uciLoop() {
                 bool blackCastled = false;
                 board.en_passant = -1;
                 board.hash = Zobrist::computeHash(board);
+                board.history.clear();
+                board.history.push_back(board.hash);
+                memset(gameHistory, 0, sizeof(gameHistory));
             }
 
             std::string word;

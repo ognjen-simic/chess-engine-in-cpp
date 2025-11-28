@@ -48,3 +48,15 @@ char Board::getPieceAt(int index) const {
 
     return '.';
 }
+
+bool Board::isEnemyPiece(char piece, bool white) const {
+    if (piece == '.') return false;
+
+    if (white) {
+        return (piece >= 'a' && piece <= 'z');
+    }
+    
+    else {
+        return (piece >= 'A' && piece <= 'Z');
+    }
+}

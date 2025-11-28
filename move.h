@@ -31,5 +31,6 @@ namespace MoveEncoder
     const int PROMO_BISHOP = 2;
     const int PROMO_ROOK = 3;
     const int PROMO_QUEEN = 4;
+    const int EN_PASSANT = 5;
 }
 #endif

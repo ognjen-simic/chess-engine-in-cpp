@@ -11,10 +11,14 @@
 #include "zobrist.h"
 #include "tt.h"
 #include "move.h"
+#include <intrin.h>
 
 long long nodes = 0;
 
-enum Square : int {
+int gameHistory[2][64][64];
+
+enum Square : int
+{
     SQ_A1 = 0, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
     SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
@@ -387,7 +391,7 @@ bool isKingInCheck(const Board& board)
     return attackMap[kingIndex];
 }
 
-void removePieceAt(Board& b, int sq) 
+void removePieceAt(Board& b, int sq)
 {
     if (!b.getAllPieces()[sq]) return;
 
@@ -406,6 +410,24 @@ void removePieceAt(Board& b, int sq)
     b.blackKing.reset(sq);
 }
 
+int getPieceIndex(const Board& b, int sq) {
+    if (b.whitePawns[sq])   return 0;
+    if (b.whiteKnights[sq]) return 1;
+    if (b.whiteBishops[sq]) return 2;
+    if (b.whiteRooks[sq])   return 3;
+    if (b.whiteQueen[sq])   return 4;
+    if (b.whiteKing[sq])    return 5;
+
+    if (b.blackPawns[sq])   return 6;
+    if (b.blackKnights[sq]) return 7;
+    if (b.blackBishops[sq]) return 8;
+    if (b.blackRooks[sq])   return 9;
+    if (b.blackQueen[sq])   return 10;
+    if (b.blackKing[sq])    return 11;
+
+    return -1;
+}
+
 bool makeMove(Move move, Board& board)
 {
     int from = MoveEncoder::getFrom(move);
@@ -413,6 +435,27 @@ bool makeMove(Move move, Board& board)
     int flag = MoveEncoder::getFlag(move);
 
     if (from == -1 || to == -1) return false;
+
+     board.hash ^= Zobrist::sideKey;
+
+    if (board.en_passant != -1) {
+        board.hash ^= Zobrist::en_passantKeys[board.en_passant % 8];
+    }
+
+    int oldCastlingRights = 0;
+    if (board.whiteCanCastleKingside)  oldCastlingRights |= 1 << 0;
+    if (board.whiteCanCastleQueenside) oldCastlingRights |= 1 << 1;
+    if (board.blackCanCastleKingside)  oldCastlingRights |= 1 << 2;
+    if (board.blackCanCastleQueenside) oldCastlingRights |= 1 << 3;
+    board.hash ^= Zobrist::castlingKeys[oldCastlingRights];
+
+    if (board.getAllPieces()[to]) {
+        int capturedType = getPieceIndex(board, to);
+        if (capturedType != -1) {
+            board.hash ^= Zobrist::pieceKeys[capturedType][to];
+        }
+        removePieceAt(board, to);
+    }
 
     bool isPromotion = (flag >= MoveEncoder::PROMO_KNIGHT) && (flag <= MoveEncoder::PROMO_QUEEN);
 
@@ -423,61 +466,63 @@ bool makeMove(Move move, Board& board)
     if (board.whiteToMove) {
         if (board.whitePawns[from]) {
             board.whitePawns.reset(from);
+            board.hash ^= Zobrist::pieceKeys[0][from];
          
             if (to == board.en_passant && (to / 8 == 5)) {
                 board.blackPawns.reset(to - 8);
+                board.hash ^= Zobrist::pieceKeys[0][to - 8];
             }
 
             if (isPromotion) {
                 switch (flag) {
-                    case MoveEncoder::PROMO_QUEEN: board.whiteQueen.set(to); break;
-                    case MoveEncoder::PROMO_ROOK: board.whiteRooks.set(to); break;
-                    case MoveEncoder::PROMO_BISHOP: board.whiteBishops.set(to); break;
-                    case MoveEncoder::PROMO_KNIGHT: board.whiteKnights.set(to); break;
+                    case MoveEncoder::PROMO_QUEEN:  board.whiteQueen.set(to); board.hash ^= Zobrist::pieceKeys[4][to]; break;
+                    case MoveEncoder::PROMO_ROOK:   board.whiteRooks.set(to); board.hash ^= Zobrist::pieceKeys[3][to]; break;
+                    case MoveEncoder::PROMO_BISHOP: board.whiteBishops.set(to); board.hash ^= Zobrist::pieceKeys[2][to]; break;
+                    case MoveEncoder::PROMO_KNIGHT: board.whiteKnights.set(to); board.hash ^= Zobrist::pieceKeys[1][to]; break;
                 }
             } else {
                 board.whitePawns.set(to);
+                board.hash ^= Zobrist::pieceKeys[0][to];
             }
             
             if (from / 8 == 1 && to / 8 == 3) board.en_passant = from + 8;
             else board.en_passant = -1;
         }
         else if (board.whiteKnights[from]) {
-            board.whiteKnights.reset(from);
-            board.whiteKnights.set(to);
+            board.whiteKnights.reset(from); board.whiteKnights.set(to);
+            board.hash ^= Zobrist::pieceKeys[1][from]; board.hash ^= Zobrist::pieceKeys[1][to];
             board.en_passant = -1;
         }
         else if (board.whiteBishops[from]) {
-            board.whiteBishops.reset(from);
-            board.whiteBishops.set(to);
+            board.whiteBishops.reset(from); board.whiteBishops.set(to);
+            board.hash ^= Zobrist::pieceKeys[2][from]; board.hash ^= Zobrist::pieceKeys[2][to];
             board.en_passant = -1;
         }
         else if (board.whiteRooks[from]) {
-            board.whiteRooks.reset(from);
-            board.whiteRooks.set(to);
+            board.whiteRooks.reset(from); board.whiteRooks.set(to);
+            board.hash ^= Zobrist::pieceKeys[3][from]; board.hash ^= Zobrist::pieceKeys[3][to];
             board.en_passant = -1;
-
             if (from == SQ_A1) board.whiteCanCastleQueenside = false;
             else if (from == SQ_H1) board.whiteCanCastleKingside = false;
         }
         else if (board.whiteQueen[from]) {
-            board.whiteQueen.reset(from);
-            board.whiteQueen.set(to);
+            board.whiteQueen.reset(from); board.whiteQueen.set(to);
+            board.hash ^= Zobrist::pieceKeys[4][from]; board.hash ^= Zobrist::pieceKeys[4][to];
             board.en_passant = -1;
         }
         else if (board.whiteKing[from]) {
-            board.whiteKing.reset(from);
-            board.whiteKing.set(to);
+            board.whiteKing.reset(from); board.whiteKing.set(to);
+            board.hash ^= Zobrist::pieceKeys[5][from]; board.hash ^= Zobrist::pieceKeys[5][to];
             board.en_passant = -1;
    
-            if (from == SQ_E1) {
+             if (from == SQ_E1) {
                 if (to == SQ_G1) {
-                    board.whiteRooks.reset(SQ_H1);
-                    board.whiteRooks.set(SQ_F1);
+                    board.whiteRooks.reset(SQ_H1); board.whiteRooks.set(SQ_F1);
+                    board.hash ^= Zobrist::pieceKeys[3][SQ_H1]; board.hash ^= Zobrist::pieceKeys[3][SQ_F1];
                     board.whiteCastled = true;
-                } else if (to == SQ_C1) { 
-                    board.whiteRooks.reset(SQ_A1);
-                    board.whiteRooks.set(SQ_D1);
+                } else if (to == SQ_C1) {
+                    board.whiteRooks.reset(SQ_A1); board.whiteRooks.set(SQ_D1);
+                    board.hash ^= Zobrist::pieceKeys[3][SQ_A1]; board.hash ^= Zobrist::pieceKeys[3][SQ_D1];
                     board.whiteCastled = true;
                 }
             }
@@ -488,61 +533,63 @@ bool makeMove(Move move, Board& board)
     else { 
         if (board.blackPawns[from]) {
             board.blackPawns.reset(from);
+            board.hash ^= Zobrist::pieceKeys[6][from];
 
             if (to == board.en_passant && (to / 8 == 2)) {
                 board.whitePawns.reset(to + 8);
+                board.hash ^= Zobrist::pieceKeys[6][to + 8];
             }
 
             if (isPromotion) {
                 switch (flag) {
-                    case MoveEncoder::PROMO_QUEEN: board.blackQueen.set(to); break;
-                    case MoveEncoder::PROMO_ROOK: board.blackRooks.set(to); break;
-                    case MoveEncoder::PROMO_BISHOP: board.blackBishops.set(to); break;
-                    case MoveEncoder::PROMO_KNIGHT: board.blackKnights.set(to); break;
+                    case MoveEncoder::PROMO_QUEEN:  board.blackQueen.set(to); board.hash ^= Zobrist::pieceKeys[10][to]; break;
+                    case MoveEncoder::PROMO_ROOK:   board.blackRooks.set(to); board.hash ^= Zobrist::pieceKeys[9][to]; break;
+                    case MoveEncoder::PROMO_BISHOP: board.blackBishops.set(to); board.hash ^= Zobrist::pieceKeys[8][to]; break;
+                    case MoveEncoder::PROMO_KNIGHT: board.blackKnights.set(to); board.hash ^= Zobrist::pieceKeys[7][to]; break;
                 }
             } else {
                 board.blackPawns.set(to);
+                board.hash ^= Zobrist::pieceKeys[6][to];
             }
 
             if (from / 8 == 6 && to / 8 == 4) board.en_passant = from - 8;
             else board.en_passant = -1;
         }
         else if (board.blackKnights[from]) {
-            board.blackKnights.reset(from);
-            board.blackKnights.set(to);
+            board.blackKnights.reset(from); board.blackKnights.set(to);
+            board.hash ^= Zobrist::pieceKeys[7][from]; board.hash ^= Zobrist::pieceKeys[7][to];
             board.en_passant = -1;
         }
         else if (board.blackBishops[from]) {
-            board.blackBishops.reset(from);
-            board.blackBishops.set(to);
+            board.blackBishops.reset(from); board.blackBishops.set(to);
+            board.hash ^= Zobrist::pieceKeys[8][from]; board.hash ^= Zobrist::pieceKeys[8][to];
             board.en_passant = -1;
         }
         else if (board.blackRooks[from]) {
-            board.blackRooks.reset(from);
-            board.blackRooks.set(to);
+            board.blackRooks.reset(from); board.blackRooks.set(to);
+            board.hash ^= Zobrist::pieceKeys[9][from]; board.hash ^= Zobrist::pieceKeys[9][to];
             board.en_passant = -1;
-            
             if (from == SQ_A8) board.blackCanCastleQueenside = false;
             else if (from == SQ_H8) board.blackCanCastleKingside = false;
         }
         else if (board.blackQueen[from]) {
-            board.blackQueen.reset(from);
-            board.blackQueen.set(to);
+            board.blackQueen.reset(from); board.blackQueen.set(to);
+            board.hash ^= Zobrist::pieceKeys[10][from]; board.hash ^= Zobrist::pieceKeys[10][to];
             board.en_passant = -1;
         }
         else if (board.blackKing[from]) {
-            board.blackKing.reset(from);
-            board.blackKing.set(to);
+            board.blackKing.reset(from); board.blackKing.set(to);
+            board.hash ^= Zobrist::pieceKeys[11][from]; board.hash ^= Zobrist::pieceKeys[11][to];
             board.en_passant = -1;
 
             if (from == SQ_E8) {
                 if (to == SQ_G8) { 
-                    board.blackRooks.reset(SQ_H8);
-                    board.blackRooks.set(SQ_F8);
+                    board.blackRooks.reset(SQ_H8); board.blackRooks.set(SQ_F8);
+                    board.hash ^= Zobrist::pieceKeys[9][SQ_H8]; board.hash ^= Zobrist::pieceKeys[9][SQ_F8];
                     board.blackCastled = true;
                 } else if (to == SQ_C8) { 
-                    board.blackRooks.reset(SQ_A8);
-                    board.blackRooks.set(SQ_D8);
+                    board.blackRooks.reset(SQ_A8); board.blackRooks.set(SQ_D8);
+                    board.hash ^= Zobrist::pieceKeys[9][SQ_A8]; board.hash ^= Zobrist::pieceKeys[9][SQ_D8];
                     board.blackCastled = true;
                 }
             }
@@ -551,8 +598,19 @@ bool makeMove(Move move, Board& board)
         }
     }
 
+    int newCastlingRights = 0;
+    if (board.whiteCanCastleKingside)  newCastlingRights |= 1 << 0;
+    if (board.whiteCanCastleQueenside) newCastlingRights |= 1 << 1;
+    if (board.blackCanCastleKingside)  newCastlingRights |= 1 << 2;
+    if (board.blackCanCastleQueenside) newCastlingRights |= 1 << 3;
+    board.hash ^= Zobrist::castlingKeys[newCastlingRights];
+
+    if (board.en_passant != -1) {
+        board.hash ^= Zobrist::en_passantKeys[board.en_passant % 8];
+    }
+
     board.whiteToMove = !board.whiteToMove;
-    board.hash = Zobrist::computeHash(board);
+    board.history.push_back(board.hash);
 
     return true;
 }
@@ -585,7 +643,7 @@ bool isCheck(Board board, const Move move)
 constexpr int MAX_DEPTH = 64;
 Move killerMoves[MAX_DEPTH][2];
 
-int scoreMove(const Move& move, const Board& board, int depth)
+int scoreMove(const Move& move, const Board& board, int depth, Move ttBestMove)
 {
     int from = MoveEncoder::getFrom(move);
     int to = MoveEncoder::getTo(move);
@@ -593,6 +651,8 @@ int scoreMove(const Move& move, const Board& board, int depth)
     char victim = board.getPieceAt(to);
 
     int score = 0;
+
+    if (move == ttBestMove) return 30000;
 
     if (victim != '.')
     {
@@ -605,11 +665,40 @@ int scoreMove(const Move& move, const Board& board, int depth)
     }
     if (victim == '.')
     {
-        if (killerMoves[depth][0] == move) score += 9000;
-        else if (killerMoves[depth][1] == move) score += 8000;
+        if (killerMoves[depth][0] == move) return 9000;
+        else if (killerMoves[depth][1] == move) return 8000;
+
+        return gameHistory[board.whiteToMove][from][to];
     }
 
     return score;
+}
+
+int scoreCapture(const Move& move, const Board& board)
+{
+    int from = MoveEncoder::getFrom(move);
+    int to = MoveEncoder::getTo(move);
+    int flag = MoveEncoder::getFlag(move);
+    
+    char attacker = board.getPieceAt(from);
+    char victim = board.getPieceAt(to);
+
+    if (to == board.en_passant) 
+    {
+        return 10000; 
+    }
+
+    if (victim != '.')
+    {
+        return 10000 + getPieceValue(victim) - getPieceValue(attacker);
+    }
+
+    if (flag == MoveEncoder::PROMO_QUEEN) return 9000;
+    if (flag == MoveEncoder::PROMO_ROOK) return 5000;
+    if (flag == MoveEncoder::PROMO_BISHOP) return 3000;
+    if (flag == MoveEncoder::PROMO_KNIGHT) return 3000;
+
+    return 0;
 }
 
 std::bitset<64> getRankInFront(const Board & board, int sq)
@@ -617,18 +706,15 @@ std::bitset<64> getRankInFront(const Board & board, int sq)
     int rank = sq / 8;
     std::bitset<64> rankInFront;
 
-    if (rank < 4)
-    {
-        if (rank < 4) {
+    if (rank < 4) {
         if (rank == 0) return std::bitset<64>(0x000000000000FF00ULL); 
         if (rank == 1) return std::bitset<64>(0x0000000000FF0000ULL); 
         return std::bitset<64>(0);
-        } 
+    } 
     else {
         if (rank == 7) return std::bitset<64>(0x00FF000000000000ULL);
         if (rank == 6) return std::bitset<64>(0x0000FF0000000000ULL);
         return std::bitset<64>(0);
-        }
     }
 
     return rankInFront;
@@ -1077,7 +1163,7 @@ int evaluatePosition(const Board& board)
 
     int mopUpScore = 0;
 
-    if (score > 0)
+    if (score > 0 && board.blackPawns.count() == 0)
     {
         int cmd = centerManhattanDistance(blackKingSq);
         int md = distance(whiteKingSq, blackKingSq);
@@ -1085,7 +1171,7 @@ int evaluatePosition(const Board& board)
 
         score += static_cast<int>(mopUpScore * (1 - blend));
     }
-    else if (score < 0)
+    else if (score < 0 && board.whitePawns.count() == 0)
     {
         int cmd = centerManhattanDistance(whiteKingSq);
         int md = distance(blackKingSq, whiteKingSq);
@@ -1097,7 +1183,7 @@ int evaluatePosition(const Board& board)
     return score;
 }
 
-std::string moveToUCI(Move m) 
+std::string moveToUCI(Move m)
 {
     if (m == 0) return "0000";
     
@@ -1178,11 +1264,11 @@ std::vector<Move> generateLegalMoves(const Board& board)
             if (epSquare != -1) {
                 if (white && (i / 8) == 4) {
                     if (abs((epSquare % 8) - (i % 8)) == 1) {
-                        pseudoMoves.push_back(MoveEncoder::encode(i, epSquare, 0));
+                        pseudoMoves.push_back(MoveEncoder::encode(i, epSquare, MoveEncoder::EN_PASSANT));
                     }
                 } else if (!white && (i / 8) == 3) {
                     if (abs((epSquare % 8) - (i % 8)) == 1) {
-                        pseudoMoves.push_back(MoveEncoder::encode(i, epSquare, 0));
+                        pseudoMoves.push_back(MoveEncoder::encode(i, epSquare, MoveEncoder::EN_PASSANT));
                     }
                 }
             }
@@ -1264,38 +1350,149 @@ std::vector<Move> generateLegalMoves(const Board& board)
     return legalMoves;
 }
 
+bool isPromotionRank(int sq)
+{
+    return (sq / 8 == 0) || (sq / 8 == 7);
+}
+
+void addPromoMoves(std::vector<Move>& moves, int from, int to)
+{
+    moves.push_back(MoveEncoder::encode(from, to, MoveEncoder::PROMO_QUEEN));
+    moves.push_back(MoveEncoder::encode(from, to, MoveEncoder::PROMO_ROOK));
+    moves.push_back(MoveEncoder::encode(from, to, MoveEncoder::PROMO_BISHOP));
+    moves.push_back(MoveEncoder::encode(from, to, MoveEncoder::PROMO_KNIGHT));  
+}
+
+template<typename Func>
+void loopBits(std::bitset<64> b, Func func)
+{
+    unsigned long long bits = b.to_ullong(); 
+    unsigned long index; 
+
+    while (_BitScanForward64(&index, bits)) {     
+        func((int)index);
+        bits &= bits - 1;
+    }
+}
+
 std::vector<Move> generateCaptures(const Board& board)
 {
-    std::vector<Move> allMoves = generateLegalMoves(board);
-    std::vector<Move> captures;
+    std::vector<Move> moves;
+    moves.reserve(32); 
 
-    for (const Move& move : allMoves)
+    bool white = board.whiteToMove;
+    std::bitset<64> enemies = board.getOpponentPieces(white);
+    std::bitset<64> all = board.getAllPieces();
+    std::bitset<64> own = board.getOwnPieces(white);
+    
+    if (white)
     {
-        int to = MoveEncoder::getTo(move);
-        if (board.whiteToMove)
-        {
-            if (board.getBlackPieces()[to])
-            {
-                captures.push_back(move);
-            }
-        }
-        else
-        {
-            if (board.getWhitePieces()[to])
-            {
-                captures.push_back(move);
-            }
-        }
+        std::bitset<64> pawns = board.whitePawns;
+        
+        std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
+        std::bitset<64> leftCaptures = ((pawns & notAFile) << 7) & enemies;
 
-        if (to == board.en_passant && board.en_passant != -1)
-        {
-            int from = MoveEncoder::getFrom(move);
-            if (board.whiteToMove && board.whitePawns[from]) captures.push_back(move);
-            else if (!board.whiteToMove && board.blackPawns[from]) captures.push_back(move);
+        loopBits(leftCaptures, [&](int to) {
+            int from = to - 7;
+            if (isPromotionRank(to)) addPromoMoves(moves, from, to);
+            else moves.push_back(MoveEncoder::encode(from, to, 0));
+        });
+
+        std::bitset<64> notHFile = ~std::bitset<64>(0x8080808080808080ULL);
+        std::bitset<64> rightCaptures = ((pawns & notHFile) << 9) & enemies;
+
+        loopBits(rightCaptures, [&](int to) {
+            int from = to - 9;
+            if (isPromotionRank(to)) addPromoMoves(moves, from, to);
+            else moves.push_back(MoveEncoder::encode(from, to, 0));
+        });
+
+        if (board.en_passant != -1) {
+            int fromRight = board.en_passant - 7;
+            if (fromRight >= 0 && fromRight < 64 && board.whitePawns[fromRight] && (fromRight % 8 != 0)) {
+                moves.push_back(MoveEncoder::encode(fromRight, board.en_passant, MoveEncoder::EN_PASSANT));
+            }
+            int fromLeft = board.en_passant - 9;
+            if (fromLeft >= 0 && fromLeft < 64 && board.whitePawns[fromLeft] && (fromLeft % 8 != 7)) {
+                moves.push_back(MoveEncoder::encode(fromLeft, board.en_passant, MoveEncoder::EN_PASSANT));
+            }
+        }
+    }
+    else
+    {
+        std::bitset<64> pawns = board.blackPawns;
+
+        std::bitset<64> notHFile = ~std::bitset<64>(0x8080808080808080ULL);
+        std::bitset<64> leftCaptures = ((pawns & notHFile) >> 7) & enemies;
+
+        loopBits(leftCaptures, [&](int to) {
+            int from = to + 7;
+            if (isPromotionRank(to)) addPromoMoves(moves, from, to);
+            else moves.push_back(MoveEncoder::encode(from, to, 0));
+        });
+
+        std::bitset<64> notAFile = ~std::bitset<64>(0x0101010101010101ULL);
+        std::bitset<64> rightCaptures = ((pawns & notAFile) >> 9) & enemies;
+
+        loopBits(rightCaptures, [&](int to) {
+            int from = to + 9;
+            if (isPromotionRank(to)) addPromoMoves(moves, from, to);
+            else moves.push_back(MoveEncoder::encode(from, to, 0));
+        });
+
+        if (board.en_passant != -1) {
+             int fromRight = board.en_passant + 7;
+             if (fromRight < 64 && board.blackPawns[fromRight] && (fromRight % 8 != 7))
+                 moves.push_back(MoveEncoder::encode(fromRight, board.en_passant, MoveEncoder::EN_PASSANT));
+             
+             int fromLeft = board.en_passant + 9;
+             if (fromLeft < 64 && board.blackPawns[fromLeft] && (fromLeft % 8 != 0))
+                 moves.push_back(MoveEncoder::encode(fromLeft, board.en_passant, MoveEncoder::EN_PASSANT));
         }
     }
 
-    return captures;
+    std::bitset<64> knights = white ? board.whiteKnights : board.blackKnights;
+    loopBits(knights, [&](int from) {
+        std::bitset<64> singleKnight; 
+        singleKnight.set(from);
+        
+        std::bitset<64> attacks = generateKnightMoves(singleKnight);
+        std::bitset<64> captures = attacks & enemies;
+
+        loopBits(captures, [&](int to) {
+            moves.push_back(MoveEncoder::encode(from, to, 0));
+        });
+    });
+
+    std::bitset<64> rooks = white ? board.whiteRooks : board.blackRooks;
+    loopBits(rooks, [&](int from) {
+        std::bitset<64> attacks = generateRookMoves(from, own, all);
+        std::bitset<64> captures = attacks & enemies;
+        loopBits(captures, [&](int to) { moves.push_back(MoveEncoder::encode(from, to, 0)); });
+    });
+
+    std::bitset<64> bishops = white ? board.whiteBishops : board.blackBishops;
+    loopBits(bishops, [&](int from) {
+        std::bitset<64> attacks = generateBishopMoves(from, own, all);
+        std::bitset<64> captures = attacks & enemies;
+        loopBits(captures, [&](int to) { moves.push_back(MoveEncoder::encode(from, to, 0)); });
+    });
+
+    std::bitset<64> queens = white ? board.whiteQueen : board.blackQueen;
+    loopBits(queens, [&](int from) {
+        std::bitset<64> attacks = generateQueenMoves(from, own, all);
+        std::bitset<64> captures = attacks & enemies;
+        loopBits(captures, [&](int to) { moves.push_back(MoveEncoder::encode(from, to, 0)); });
+    });
+
+    std::bitset<64> king = white ? board.whiteKing : board.blackKing;
+    loopBits(king, [&](int from) {
+        std::bitset<64> attacks = generateKingMoves(from, own, all);
+        std::bitset<64> captures = attacks & enemies;
+        loopBits(captures, [&](int to) { moves.push_back(MoveEncoder::encode(from, to, 0)); });
+    });
+
+    return moves;
 }
 
 std::vector<Move> generateChecks(const Board& board)
@@ -1331,192 +1528,193 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
 {
     nodes++;
 
-    if (qDepth > 4) return evaluatePosition(board);
-
     int standPat = evaluatePosition(board);
-
-    if (board.whiteToMove)
+    if (!board.whiteToMove)
     {
-        if (standPat >= beta)
+        standPat = -standPat;
+    }
+
+    if (qDepth > 4) return standPat;
+
+    if (standPat >= beta)
         {
             return beta;
         }
-        if (alpha < standPat)
+    if (alpha < standPat)
         {
             alpha = standPat;
         }
         
-        std::vector<Move>captures = generateCaptures(board);
+    std::vector<Move>captures = generateCaptures(board);
 
-        for (const Move& move : captures)
+    std::sort(captures.begin(), captures.end(), [&](const Move& a, const Move& b){
+        return(scoreCapture(a, board) > scoreCapture(b, board));
+    });
+
+    for (const Move& move : captures)
         {
             Board newBoard = board;
             makeMove(move, newBoard);
 
-            int score = quiescence(newBoard, alpha, beta, qDepth + 1);
+            newBoard.whiteToMove = !newBoard.whiteToMove; 
+            if (isKingInCheck(newBoard)) {
+                continue;
+            }
+        newBoard.whiteToMove = !newBoard.whiteToMove;
 
+            int score = -quiescence(newBoard, -beta, -alpha, qDepth + 1);
+
+            if (score >= beta)
+            {
+                return beta;
+            }
             if (score > alpha)
             {
                 alpha = score;
-                if (alpha >= beta)
-                {
-                    break;
-                }
             }
         }
         return alpha;
+}
+
+void makeNullMove(Board& board)
+{
+    board.whiteToMove = !board.whiteToMove;
+    board.hash ^= Zobrist::sideKey;
+
+     if (board.en_passant != -1) {
+        board.hash ^= Zobrist::en_passantKeys[board.en_passant % 8]; 
     }
+    board.en_passant = -1;
 
-    else
-    {
-        if (standPat <= alpha)
-        {
-            return alpha;
-        }
-        if (standPat < beta)
-        {
-            beta = standPat;
-        }
-
-        std::vector<Move>captures = generateCaptures(board);
-
-        for (const Move& move : captures)
-        {
-            Board newBoard = board;
-            makeMove(move, newBoard);
-
-            int score = quiescence(newBoard, alpha, beta, qDepth + 1);
-
-            if (score < beta)
-            {
-                beta = score;
-                if (beta <= alpha)
-                {
-                    break;
-                }
-            }
-        }
-        return beta;
-    }
+    board.history.push_back(board.hash);
 }
 
 int minimax(Board board, int depth, int alpha, int beta)
 {
     nodes++;
 
-    int origAlpha = alpha;
-    int origBeta = beta;    
-    
+    int reps = 0;
+    for (uint64_t h : board.history) {
+        if (h == board.hash) reps++;
+    }
+    if (reps >= 2) return 0;
+
     int ttScore;
     Move ttBestMove;
-    if (probeTT(board.hash, depth, alpha, beta, ttScore, ttBestMove))
-    {
+    if (probeTT(board.hash, depth, alpha, beta, ttScore, ttBestMove)) {
         return ttScore;
     }
 
-    int score = evaluatePosition(board);
-    if (depth == 0)
-    {
+    if (depth == 0) {
         return quiescence(board, alpha, beta);
+    }
+
+     if (depth >= 3 && !isKingInCheck(board) && gamePhase(board) > 0) 
+    {
+        Board nullBoard = board;
+        makeNullMove(nullBoard);
+
+        int R = 2;
+        int score = -minimax(nullBoard, depth - 1 - R, -beta, -beta + 1);
+
+        if (score >= beta) {
+            return beta; 
+        }
     }
 
     std::vector<Move> moves = generateLegalMoves(board);
 
-    if (moves.empty())
-    {
-        if (isKingInCheck(board))
-        {
-            return board.whiteToMove ? -100000 : 100000;
+    if (moves.empty()) {
+        if (isKingInCheck(board)) {
+            return -100000;
         }
-        else return 0;
+        return 0;
     }
 
-    std::sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) 
-    {
-        return scoreMove(a, board, depth) > scoreMove(b, board, depth);
+    std::sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {
+        return scoreMove(a, board, depth, ttBestMove) > scoreMove(b, board, depth, ttBestMove);
     });
 
     Move bestMoveFound = 0;
+    int bestScore = -200000;
+    int movesSearched = 0;
 
-    if (board.whiteToMove)
-    {
-        int best = -100000;
-        for (const Move move : moves)
+    bool foundPv = false;
+
+    for (const Move move : moves) {
+        movesSearched++;
+        
+        Board newBoard = board;
+        makeMove(move, newBoard);
+
+        int score;
+
+        bool isCapture = (board.getPieceAt(MoveEncoder::getTo(move)) != '.') 
+                         || (MoveEncoder::getFlag(move) >= MoveEncoder::PROMO_KNIGHT);
+        bool givesCheck = isKingInCheck(newBoard); 
+
+        if (foundPv)
         {
-            Board newBoard = board;
-            makeMove(move, newBoard);
-
-            score = minimax(newBoard, depth - 1, alpha, beta);
-
-            if (score > best)
+            if (depth >= 3 && movesSearched> 4 && !isCapture && !givesCheck)
             {
-                best = score;
-                bestMoveFound = move;
+                int reduction = 1;
+                if (movesSearched > 10) reduction = 2;
+                
+                score = -minimax(newBoard, depth - 1 - reduction, -alpha - 1, -alpha);
             }
-            alpha = std::max(alpha, score);
-
-            if (beta <= alpha)
+            else
             {
-                if (board.getPieceAt(MoveEncoder::getTo(move)) == '.') 
-                {
-                    if (killerMoves[depth][0] != move)
-                    {
-                        killerMoves[depth][1] = killerMoves[depth][0];
-                        killerMoves[depth][0] = move;
-                    }
-                }
-                break;
+                score = -minimax(newBoard, depth - 1, -alpha - 1, -alpha);
+            }
+            if (score > alpha && score < beta)
+            {
+                score = -minimax(newBoard, depth - 1, -beta, -alpha);
             }
         }
-
-        TTFlag flag;
-        if (best <= origAlpha) flag = UPPERBOUND;
-        else if (best >= origBeta) flag = LOWERBOUND;
-        else flag = EXACT;
-
-        storeTT(board.hash, depth, best, flag, bestMoveFound);
-
-        return best;
-    }
-    else
-    {
-        int best = 100000;
-        for (const Move move : moves)
+        else
         {
-            Board newBoard = board;
-            makeMove(move, newBoard);
-            score = minimax(newBoard, depth - 1, alpha, beta);
-
-            if (score < best)
-            {
-                best = score;
-                bestMoveFound = move;
-            }
-            beta = std::min(beta, score);
-
-            if (beta <= alpha)
-            {
-                if (board.getPieceAt(MoveEncoder::getTo(move)) == '.') 
-                {
-                    if (killerMoves[depth][0] != move)
-                    {
-                        killerMoves[depth][1] = killerMoves[depth][0];
-                        killerMoves[depth][0] = move;
-                    }
-                }
-                break;
-            }
+            score = -minimax(newBoard, depth - 1, -beta, -alpha);
         }
 
-        TTFlag flag;
-        if (best <= origAlpha) flag = UPPERBOUND;
-        else if (best >= origBeta) flag = LOWERBOUND;
-        else flag = EXACT;
+        if (score > bestScore) {
+            bestScore = score;
+            bestMoveFound = move;
 
-        storeTT(board.hash, depth, best, flag, bestMoveFound);
+            if (bestScore > alpha) {
+            alpha = bestScore;
+            foundPv = true;
+        }
+        }
 
-        return best;
+        if (alpha >= beta) {
+            if (!isCapture) {
+                if (killerMoves[depth][0] != move) {
+                    killerMoves[depth][1] = killerMoves[depth][0];
+                    killerMoves[depth][0] = move;
+                }
+
+                int from = MoveEncoder::getFrom(move);
+                int to = MoveEncoder::getTo(move);
+
+                gameHistory[board.whiteToMove][from][to] += depth*depth;
+
+                if (gameHistory[board.whiteToMove][from][to] > 20000)
+                {
+                    gameHistory[board.whiteToMove][from][to] /= 2;
+                }
+            }
+            break;
+        }
     }
+
+    TTFlag flag;
+    if (bestScore <= alpha) flag = UPPERBOUND;
+    else if (bestScore >= beta) flag = LOWERBOUND;
+    else flag = EXACT;
+
+    storeTT(board.hash, depth, bestScore, flag, bestMoveFound);
+
+    return bestScore;
 }
 
 Move findBestMove(const Board& board, int maxTimeMs)
@@ -1524,37 +1722,35 @@ Move findBestMove(const Board& board, int maxTimeMs)
     nodes = 0;
 
     Move bestMove = 0;
-    int bestScore = board.whiteToMove ? -100000 : 100000;
+    int bestScore = -200000;
     auto start = std::chrono::steady_clock::now();
 
     for (int depth = 1; ; ++depth) {
+        
         Move currentBestMove = 0;
-        int currentBestScore = board.whiteToMove ? -100000 : 100000;
+        int currentBestScore = -200000;
 
         std::vector<Move> moves = generateLegalMoves(board);
 
-        Move ttMove;
-        int ttScore;
-        if (probeTT(board.hash, depth, -100000, 100000, ttScore, ttMove)) {
-            auto it = std::find(moves.begin(), moves.end(), ttMove);
-            if (it != moves.end()) {
-                std::iter_swap(moves.begin(), it);
-            }
+        if (moves.empty()) {
+            return 0; 
         }
 
+        Move ttMove = 0;
+        int ttScore;
+        probeTT(board.hash, depth, -100000, 100000, ttScore, ttMove);
+
         std::sort(moves.begin(), moves.end(), [&](const Move& a, const Move& b) {
-            return scoreMove(a, board, depth) > scoreMove(b, board, depth);
+            return scoreMove(a, board, depth, ttMove) > scoreMove(b, board, depth, ttMove);
         });
 
         for (const Move& move : moves) {
             Board newBoard = board;
             makeMove(move, newBoard);
-            int score = minimax(newBoard, depth - 1, -100000, 100000);
+            
+            int score = -minimax(newBoard, depth - 1, -100000, 100000);
 
-            if (board.whiteToMove && score > currentBestScore) {
-                currentBestScore = score;
-                currentBestMove = move;
-            } else if (!board.whiteToMove && score < currentBestScore) {
+            if (score > currentBestScore) {
                 currentBestScore = score;
                 currentBestMove = move;
             }
@@ -1567,20 +1763,35 @@ Move findBestMove(const Board& board, int maxTimeMs)
                 if (duration == 0) duration = 1;
                 long long nps = (nodes * 1000) / duration;
 
+                Move moveToSend = (currentBestMove != 0) ? currentBestMove : bestMove;
+
                 std::cout << "info depth " << depth 
                           << " nodes " << nodes 
                           << " time " << duration 
                           << " nps " << nps 
-                          << " score cp " << bestScore
-                          << " pv " << moveToUCI(bestMove == 0 ? currentBestMove : bestMove) 
+                          << " score cp " << currentBestScore
+                          << " pv " << moveToUCI(moveToSend) 
                           << "\n";
 
-                return bestMove == 0 ? currentBestMove : bestMove;
+                return moveToSend;
             }
         }
 
         bestMove = currentBestMove;
         bestScore = currentBestScore;
+
+        auto end = std::chrono::steady_clock::now();
+        long long duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        if(duration == 0) duration = 1;
+        long long nps = (nodes * 1000) / duration;
+
+        std::cout << "info depth " << depth 
+                  << " nodes " << nodes 
+                  << " time " << duration 
+                  << " nps " << nps 
+                  << " score cp " << bestScore
+                  << " pv " << moveToUCI(bestMove) 
+                  << "\n";
 
     }
     return bestMove;

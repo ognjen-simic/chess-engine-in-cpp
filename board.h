@@ -4,6 +4,7 @@
 #include <bitset>
 #include <string>
 #include <cstdint>
+#include <vector>
 
 struct Board
 {
@@ -30,6 +31,7 @@ struct Board
     bool whiteToMove = true;
     int en_passant = -1;
     uint64_t hash = 0;
+    std::vector<uint64_t> history;
 
 std::bitset<64> getWhitePieces() const;
 std::bitset<64> getBlackPieces() const;
@@ -37,6 +39,7 @@ std::bitset<64> getAllPieces() const;
 std::bitset<64> getOwnPieces(bool whiteToMove) const;
 std::bitset<64> getOpponentPieces(bool whiteToMove) const;
 char getPieceAt(int index) const;
+bool isEnemyPiece(char piece, bool white) const;
 };
 
 #endif
