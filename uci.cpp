@@ -12,6 +12,7 @@ struct Board;
 Board board;
 
 extern int gameHistory [2][64][64];
+extern std::vector<uint64_t> repHistory;
 
 bool makeMove(Move move, Board& board);
 Move findBestMove(const Board& board, int depth);
@@ -57,12 +58,12 @@ void uciLoop() {
             board.whiteCanCastleQueenside = true;
             board.blackCanCastleKingside = true;
             board.blackCanCastleQueenside = true;
-            bool whiteCastled = false;
-            bool blackCastled = false;
+            board.whiteCastled = false;
+            board.blackCastled = false;
             board.en_passant = -1;
             board.hash = Zobrist::computeHash(board);
-            board.history.clear();
-            board.history.push_back(board.hash);
+            repHistory.clear();
+            repHistory.push_back(board.hash);
             memset(gameHistory, 0, sizeof(gameHistory));
         }
         else if (token == "position") {
@@ -90,13 +91,12 @@ void uciLoop() {
                 board.whiteCanCastleQueenside = true;
                 board.blackCanCastleKingside = true;
                 board.blackCanCastleQueenside = true;
-                bool whiteCastled = false;
-                bool blackCastled = false;
+                board.whiteCastled = false;
+                board.blackCastled = false;
                 board.en_passant = -1;
                 board.hash = Zobrist::computeHash(board);
-                board.history.clear();
-                board.history.push_back(board.hash);
-                memset(gameHistory, 0, sizeof(gameHistory));
+                repHistory.clear();
+                repHistory.push_back(board.hash);
             }
 
             std::string word;
@@ -107,6 +107,7 @@ void uciLoop() {
                     if (m != 0)
                     {
                         makeMove(m, board);
+                        repHistory.push_back(board.hash);
                     }
                 }
             }

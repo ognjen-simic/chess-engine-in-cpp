@@ -31,7 +31,6 @@ struct Board
     bool whiteToMove = true;
     int en_passant = -1;
     uint64_t hash = 0;
-    std::vector<uint64_t> history;
 
 std::bitset<64> getWhitePieces() const;
 std::bitset<64> getBlackPieces() const;
