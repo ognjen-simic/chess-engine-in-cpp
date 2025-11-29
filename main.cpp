@@ -308,15 +308,19 @@ std::bitset<64> generateBlackAttacks(const Board& board)
     return attacks;
 }
 
-std::map<int, std::bitset<64>> getPinnedPieces(const Board& board)
+void getPinnedPieces(const Board& board, std::bitset<64>* pinnedLines)
+{
+    for (int i = 0; i < 64; ++i)
     {
-    bool white = board.whiteToMove;
+        pinnedLines[i].reset();
+    }
 
+    bool white = board.whiteToMove;
     int kingSquare = (white ? board.whiteKing : board.blackKing)._Find_first();
 
     if (kingSquare >= 64) {
         std::cerr << "Error: King not found on board!" << std::endl;
-        return std::map<int, std::bitset<64>>();
+        return;
     }
 
     std::bitset<64> enemyBishops = white ? board.blackBishops : board.whiteBishops;
@@ -324,9 +328,7 @@ std::map<int, std::bitset<64>> getPinnedPieces(const Board& board)
     std::bitset<64> enemyQueens = white ? board.blackQueen : board.whiteQueen;
 
     std::bitset<64> ownPieces = board.getOwnPieces(white);
-    std::bitset<64> allPieces    = board.getAllPieces();
-
-    std::map<int, std::bitset<64>> pinnedLines;
+    std::bitset<64> allPieces = board.getAllPieces();
 
     int directions[8] = {1, -1, 8, -8, 7, -7, 9, -9};
 
@@ -334,7 +336,6 @@ std::map<int, std::bitset<64>> getPinnedPieces(const Board& board)
     {
         int dir = directions[d];
         int sq = kingSquare;
-        bool foundOwn = false;
         int potentialPinned = -1;
 
         std::bitset<64> potentialLine;
@@ -353,32 +354,26 @@ std::map<int, std::bitset<64>> getPinnedPieces(const Board& board)
 
             if (ownPieces[sq])
             {
-                if (!foundOwn)
+                if (potentialPinned == -1)
                 {
-                    foundOwn = true;
                     potentialPinned = sq;
                 }
-                else break; 
+                else break;
             }
-            else if (enemyQueens[sq] ||
-                     (enemyBishops[sq] && (dir == 7 || dir == -7 || dir == 9 || dir == -9)) ||
-                     (enemyRooks[sq] && (dir == 1 || dir == -1 || dir == 8 || dir == -8)))
+            else if (allPieces[sq]) 
             {
-                if (foundOwn && potentialPinned != -1)
+                if (enemyQueens[sq] ||
+                   (enemyBishops[sq] && (d >= 4)) ||
+                   (enemyRooks[sq] && (d < 4)))
                 {
-                    potentialLine.reset(potentialPinned);
-                    pinnedLines[potentialPinned] = potentialLine;
+                    if (potentialPinned != -1) {
+                        pinnedLines[potentialPinned] = potentialLine;
+                    }
                 }
-                break;
-            }
-            else if (allPieces[sq])
-            {
                 break;
             }
         }
     }
-
-    return pinnedLines;
 }
 
 bool isKingInCheck(const Board& board)
@@ -412,7 +407,8 @@ void removePieceAt(Board& b, int sq)
     b.blackKing.reset(sq);
 }
 
-int getPieceIndex(const Board& b, int sq) {
+int getPieceIndex(const Board& b, int sq)
+{
     if (b.whitePawns[sq])   return 0;
     if (b.whiteKnights[sq]) return 1;
     if (b.whiteBishops[sq]) return 2;
@@ -438,7 +434,8 @@ bool makeMove(Move move, Board& board)
 
     if (from == -1 || to == -1) return false;
 
-     board.hash ^= Zobrist::sideKey;
+    // ------------------------Clear hash-----------------------------
+    board.hash ^= Zobrist::sideKey;
 
     if (board.en_passant != -1) {
         board.hash ^= Zobrist::en_passantKeys[board.en_passant % 8];
@@ -451,6 +448,8 @@ bool makeMove(Move move, Board& board)
     if (board.blackCanCastleQueenside) oldCastlingRights |= 1 << 3;
     board.hash ^= Zobrist::castlingKeys[oldCastlingRights];
 
+    // ----------------------------------------------------------------
+
     if (board.getAllPieces()[to]) {
         int capturedType = getPieceIndex(board, to);
         if (capturedType != -1) {
@@ -461,10 +460,12 @@ bool makeMove(Move move, Board& board)
 
     bool isPromotion = (flag >= MoveEncoder::PROMO_KNIGHT) && (flag <= MoveEncoder::PROMO_QUEEN);
 
+    // Remove taken piece
     if (board.getAllPieces()[to]) {
         removePieceAt(board, to);
     }
 
+    // Move pawn
     if (board.whiteToMove) {
         if (board.whitePawns[from]) {
             board.whitePawns.reset(from);
@@ -490,16 +491,19 @@ bool makeMove(Move move, Board& board)
             if (from / 8 == 1 && to / 8 == 3) board.en_passant = from + 8;
             else board.en_passant = -1;
         }
+        // Move knight
         else if (board.whiteKnights[from]) {
             board.whiteKnights.reset(from); board.whiteKnights.set(to);
             board.hash ^= Zobrist::pieceKeys[1][from]; board.hash ^= Zobrist::pieceKeys[1][to];
             board.en_passant = -1;
         }
+        // Move bishop
         else if (board.whiteBishops[from]) {
             board.whiteBishops.reset(from); board.whiteBishops.set(to);
             board.hash ^= Zobrist::pieceKeys[2][from]; board.hash ^= Zobrist::pieceKeys[2][to];
             board.en_passant = -1;
         }
+        // Move rook
         else if (board.whiteRooks[from]) {
             board.whiteRooks.reset(from); board.whiteRooks.set(to);
             board.hash ^= Zobrist::pieceKeys[3][from]; board.hash ^= Zobrist::pieceKeys[3][to];
@@ -507,11 +511,13 @@ bool makeMove(Move move, Board& board)
             if (from == SQ_A1) board.whiteCanCastleQueenside = false;
             else if (from == SQ_H1) board.whiteCanCastleKingside = false;
         }
+        // Move queen
         else if (board.whiteQueen[from]) {
             board.whiteQueen.reset(from); board.whiteQueen.set(to);
             board.hash ^= Zobrist::pieceKeys[4][from]; board.hash ^= Zobrist::pieceKeys[4][to];
             board.en_passant = -1;
         }
+        // Move king
         else if (board.whiteKing[from]) {
             board.whiteKing.reset(from); board.whiteKing.set(to);
             board.hash ^= Zobrist::pieceKeys[5][from]; board.hash ^= Zobrist::pieceKeys[5][to];
@@ -532,7 +538,8 @@ bool makeMove(Move move, Board& board)
             board.whiteCanCastleQueenside = false;
         }
     } 
-    else { 
+    else {
+        // Move pawn
         if (board.blackPawns[from]) {
             board.blackPawns.reset(from);
             board.hash ^= Zobrist::pieceKeys[6][from];
@@ -557,16 +564,19 @@ bool makeMove(Move move, Board& board)
             if (from / 8 == 6 && to / 8 == 4) board.en_passant = from - 8;
             else board.en_passant = -1;
         }
+        // Move knight
         else if (board.blackKnights[from]) {
             board.blackKnights.reset(from); board.blackKnights.set(to);
             board.hash ^= Zobrist::pieceKeys[7][from]; board.hash ^= Zobrist::pieceKeys[7][to];
             board.en_passant = -1;
         }
+        // Move bishop
         else if (board.blackBishops[from]) {
             board.blackBishops.reset(from); board.blackBishops.set(to);
             board.hash ^= Zobrist::pieceKeys[8][from]; board.hash ^= Zobrist::pieceKeys[8][to];
             board.en_passant = -1;
         }
+        // Move rook
         else if (board.blackRooks[from]) {
             board.blackRooks.reset(from); board.blackRooks.set(to);
             board.hash ^= Zobrist::pieceKeys[9][from]; board.hash ^= Zobrist::pieceKeys[9][to];
@@ -574,11 +584,13 @@ bool makeMove(Move move, Board& board)
             if (from == SQ_A8) board.blackCanCastleQueenside = false;
             else if (from == SQ_H8) board.blackCanCastleKingside = false;
         }
+        // Move queen
         else if (board.blackQueen[from]) {
             board.blackQueen.reset(from); board.blackQueen.set(to);
             board.hash ^= Zobrist::pieceKeys[10][from]; board.hash ^= Zobrist::pieceKeys[10][to];
             board.en_passant = -1;
         }
+        // Move king
         else if (board.blackKing[from]) {
             board.blackKing.reset(from); board.blackKing.set(to);
             board.hash ^= Zobrist::pieceKeys[11][from]; board.hash ^= Zobrist::pieceKeys[11][to];
@@ -600,6 +612,7 @@ bool makeMove(Move move, Board& board)
         }
     }
 
+    // Update castling hash
     int newCastlingRights = 0;
     if (board.whiteCanCastleKingside)  newCastlingRights |= 1 << 0;
     if (board.whiteCanCastleQueenside) newCastlingRights |= 1 << 1;
@@ -607,6 +620,7 @@ bool makeMove(Move move, Board& board)
     if (board.blackCanCastleQueenside) newCastlingRights |= 1 << 3;
     board.hash ^= Zobrist::castlingKeys[newCastlingRights];
 
+    // Update en passant hash
     if (board.en_passant != -1) {
         board.hash ^= Zobrist::en_passantKeys[board.en_passant % 8];
     }
@@ -887,7 +901,7 @@ int evaluatePosition(const Board& board)
 
     int score = 0;
     int phase = gamePhase(board);
-    double blend = static_cast<double>(phase) / MAX_PHASE;
+    double blend = static_cast<double>(phase) / MAX_PHASE; // opening = 1  endgame = 0
 
     score += board.whitePawns.count() * 100;
     score -= board.blackPawns.count() * 100;
@@ -1021,6 +1035,7 @@ int evaluatePosition(const Board& board)
         -53, -34, -21, -11, -28, -14, -24, -43
     };
 
+    // For each piece apply score from piece-square table
     auto evalPieceSet = [&](std::bitset<64> pieces, const int* opTable, const int* endTable, bool isWhite) 
     {
         int setScore = 0;
@@ -1045,6 +1060,7 @@ int evaluatePosition(const Board& board)
     score += evalPieceSet(board.whiteKing,    KingOpeningTable,   KingEndgameTable,   true);
     score += evalPieceSet(board.blackKing,    KingOpeningTable,   KingEndgameTable,   false);
 
+    // For each pawn apply scores
     std::bitset<64> wp = board.whitePawns;
     while (wp.any()) 
     {
@@ -1085,9 +1101,11 @@ int evaluatePosition(const Board& board)
     std::bitset<64> whiteAttacks = generateWhiteAttacks(board);
     std::bitset<64> blackAttacks = generateBlackAttacks(board);
 
+    // Reward for having space
     score += whiteAttacks.count();
     score -= blackAttacks.count();
 
+    // Penalty for being in check
     if (board.whiteToMove){
         if (blackAttacks[whiteKingSq]) score -= 30;
     }
@@ -1095,9 +1113,11 @@ int evaluatePosition(const Board& board)
         if (whiteAttacks[blackKingSq]) score += 30;
     }
 
+    // Penalty for moving the king without castling
     if (!board.whiteCastled && !board.whiteCanCastleKingside && !board.whiteCanCastleQueenside) score -= 80;
     if (!board.blackCastled && !board.blackCanCastleKingside && !board.blackCanCastleQueenside) score += 80;
 
+    // King safety
     int kingShieldWeight = static_cast<int>(blend * 50 + (1.0 - blend) * 10);
     
     std::bitset<64> rankInFrontOfWhite = getRankInFront(board, whiteKingSq);
@@ -1162,6 +1182,7 @@ int evaluatePosition(const Board& board)
         else if (board.whitePawns[sq]) score += 5;
     }
 
+    // If winning - push oponents king to the edge
     int mopUpScore = 0;
 
     if (score > 0 && board.blackPawns.count() == 0)
@@ -1202,6 +1223,14 @@ std::string moveToUCI(Move m)
     return s;
 }
 
+void addPromoMoves(MoveList& moves, int from, int to)
+{
+    moves.add(MoveEncoder::encode(from, to, MoveEncoder::PROMO_QUEEN));
+    moves.add(MoveEncoder::encode(from, to, MoveEncoder::PROMO_ROOK));
+    moves.add(MoveEncoder::encode(from, to, MoveEncoder::PROMO_BISHOP));
+    moves.add(MoveEncoder::encode(from, to, MoveEncoder::PROMO_KNIGHT));  
+}
+
 void generateLegalMoves(const Board& board, MoveList& legalMoves)
 {
     legalMoves.reset();
@@ -1209,35 +1238,41 @@ void generateLegalMoves(const Board& board, MoveList& legalMoves)
 
     bool white = board.whiteToMove;
 
-    std::map<int, std::bitset<64>> pinnedLines = getPinnedPieces(board);
+    std::bitset<64> pinnedLines[64];
+    getPinnedPieces(board, pinnedLines);
 
     for (int i = 0; i < 64; ++i) {
         std::bitset<64> from(1ULL << i);
 
+        // Knight moves
         if ((white && board.whiteKnights[i]) || (!white && board.blackKnights[i])) {
             std::bitset<64> targets(generateKnightMoves(from));
             targets &= ~board.getOwnPieces(white);
             for (int j = 0; j < 64; ++j) if (targets[j]) pseudoMoves.add(MoveEncoder::encode(i, j, 0));
         }
 
+        // Bishop moves
         if ((white && board.whiteBishops[i]) || (!white && board.blackBishops[i])) {
             std::bitset<64> targets(generateBishopMoves(i, board.getOwnPieces(white), board.getAllPieces()));
             targets &= ~board.getOwnPieces(white);
             for (int j = 0; j < 64; ++j) if (targets[j]) pseudoMoves.add(MoveEncoder::encode(i, j, 0));
         }
 
+        // Rook moves
         if ((white && board.whiteRooks[i]) || (!white && board.blackRooks[i])) {
             std::bitset<64> targets(generateRookMoves(i, board.getOwnPieces(white), board.getAllPieces()));
             targets &= ~board.getOwnPieces(white);
             for (int j = 0; j < 64; ++j) if (targets[j]) pseudoMoves.add(MoveEncoder::encode(i, j, 0));
         }
 
+        // Queen moves
         if ((white && board.whiteQueen[i]) || (!white && board.blackQueen[i])) {
             std::bitset<64> targets(generateQueenMoves(i, board.getOwnPieces(white), board.getAllPieces()));
             targets &= ~board.getOwnPieces(white);
             for (int j = 0; j < 64; ++j) if (targets[j]) pseudoMoves.add(MoveEncoder::encode(i, j, 0));
         }
 
+        // King moves
         if ((white && board.whiteKing[i]) || (!white && board.blackKing[i])) {
             std::bitset<64> targets(generateKingMoves(i, board.getOwnPieces(white), board.getAllPieces()));
             std::bitset<64> enemyAttacks = white ? generateBlackAttacks(board) : generateWhiteAttacks(board);
@@ -1245,23 +1280,23 @@ void generateLegalMoves(const Board& board, MoveList& legalMoves)
             for (int j = 0; j < 64; ++j) if (targets[j]) pseudoMoves.add(MoveEncoder::encode(i, j, 0));
         }
 
+        // Pawn moves
         if ((white && board.whitePawns[i]) || (!white && board.blackPawns[i])) {
             std::bitset<64> targets = white
                 ? generateWhitePawnMoves(from, board.getBlackPieces(), board.getAllPieces())
                 : generateBlackPawnMoves(from, board.getWhitePieces(), board.getAllPieces());
 
+            // Promotions
             for (int j = 0; j < 64; ++j) {
                 if (!targets[j]) continue;
                 if ((white && j / 8 == 7) || (!white && j / 8 == 0)) {
-                    pseudoMoves.add(MoveEncoder::encode(i, j, MoveEncoder::PROMO_QUEEN));
-                    pseudoMoves.add(MoveEncoder::encode(i, j, MoveEncoder::PROMO_ROOK));
-                    pseudoMoves.add(MoveEncoder::encode(i, j, MoveEncoder::PROMO_BISHOP));
-                    pseudoMoves.add(MoveEncoder::encode(i, j, MoveEncoder::PROMO_KNIGHT));
+                    addPromoMoves(pseudoMoves, i, j);
                 } else {
                     pseudoMoves.add(MoveEncoder::encode(i, j, 0));
                 }
             }
 
+            // En passant
             int epSquare = board.en_passant;
             if (epSquare != -1) {
                 if (white && (i / 8) == 4) {
@@ -1279,6 +1314,7 @@ void generateLegalMoves(const Board& board, MoveList& legalMoves)
 
     std::bitset<64> all = board.getAllPieces();
 
+    // Castling
     if (board.whiteToMove) {
          if (board.whiteCanCastleKingside && !all[SQ_F1] && !all[SQ_G1] && !isKingInCheck(board))
         {
@@ -1320,6 +1356,7 @@ void generateLegalMoves(const Board& board, MoveList& legalMoves)
         }
     }
 
+    // Validate moves
     for (Move* m = pseudoMoves.begin(); m != pseudoMoves.end(); ++m) {
         int from = MoveEncoder::getFrom(*m);
         int to   = MoveEncoder::getTo(*m);
@@ -1330,13 +1367,15 @@ void generateLegalMoves(const Board& board, MoveList& legalMoves)
             if (board.whiteKing[to]) continue;
         }
 
-        if (pinnedLines.count(from)) {
+        // If pinned - only move on the pinned line
+        if (pinnedLines[from].any()) {
             if (!pinnedLines[from][to]) continue;
         }
 
         Board newBoard = board;
         makeMove(*m, newBoard);
 
+        // If king in check - illegal
         int kingSq;
         if (board.whiteToMove) {
              kingSq = newBoard.whiteKing._Find_first();
@@ -1353,14 +1392,6 @@ void generateLegalMoves(const Board& board, MoveList& legalMoves)
 bool isPromotionRank(int sq)
 {
     return (sq / 8 == 0) || (sq / 8 == 7);
-}
-
-void addPromoMoves(MoveList& moves, int from, int to)
-{
-    moves.add(MoveEncoder::encode(from, to, MoveEncoder::PROMO_QUEEN));
-    moves.add(MoveEncoder::encode(from, to, MoveEncoder::PROMO_ROOK));
-    moves.add(MoveEncoder::encode(from, to, MoveEncoder::PROMO_BISHOP));
-    moves.add(MoveEncoder::encode(from, to, MoveEncoder::PROMO_KNIGHT));  
 }
 
 template<typename Func>
@@ -1514,10 +1545,12 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
 
     if (qDepth > 4) return standPat;
 
+    // Beta cutoff
     if (standPat >= beta)
         {
             return beta;
         }
+    // Alpha cutoff
     if (alpha < standPat)
         {
             alpha = standPat;
@@ -1539,14 +1572,16 @@ int quiescence(Board board, int alpha, int beta, int qDepth = 0)
             if (isKingInCheck(newBoard)) {
                 continue;
             }
-        newBoard.whiteToMove = !newBoard.whiteToMove;
+            newBoard.whiteToMove = !newBoard.whiteToMove;
 
             int score = -quiescence(newBoard, -beta, -alpha, qDepth + 1);
 
+            // Beta cutoff
             if (score >= beta)
             {
                 return beta;
             }
+            // Alpha cutoff
             if (score > alpha)
             {
                 alpha = score;
@@ -1571,6 +1606,7 @@ int minimax(Board board, int depth, int alpha, int beta, std::vector<uint64_t>& 
     nodes++;
     int originalAlpha = alpha;
 
+    // 3 repetitions = draw
     int reps = 0;
     for (size_t i = 0; i < path.size(); ++i) {
         if (path[i] == board.hash) {
@@ -1591,11 +1627,13 @@ int minimax(Board board, int depth, int alpha, int beta, std::vector<uint64_t>& 
 
     path.push_back(board.hash);
 
-     if (depth >= 3 && !isKingInCheck(board) && gamePhase(board) > 0) 
+    // Null Move pruning
+    if (depth >= 3 && !isKingInCheck(board) && gamePhase(board) > 0) 
     {
         Board nullBoard = board;
         makeNullMove(nullBoard);
 
+        // Search with reduction
         int R = 2;
         int score = -minimax(nullBoard, depth - 1 - R, -beta, -beta + 1, path);
 
@@ -1608,6 +1646,7 @@ int minimax(Board board, int depth, int alpha, int beta, std::vector<uint64_t>& 
     MoveList moves;
     generateLegalMoves(board, moves);
 
+    // If no legal moves - checkmate or stalemate
     if (moves.size() == 0) {
         path.pop_back();
         if (isKingInCheck(board)) {
@@ -1645,19 +1684,23 @@ int minimax(Board board, int depth, int alpha, int beta, std::vector<uint64_t>& 
                 int reduction = 1;
                 if (movesSearched > 10) reduction = 2;
                 
+                // Principal Variation Search + Late Move Reduction
                 score = -minimax(newBoard, depth - 1 - reduction, -alpha - 1, -alpha, path);
             }
             else
             {
+                // PVS - only zero-window
                 score = -minimax(newBoard, depth - 1, -alpha - 1, -alpha, path);
             }
             if (score > alpha && score < beta)
             {
+                // Normal search
                 score = -minimax(newBoard, depth - 1, -beta, -alpha, path);
             }
         }
         else
         {
+            // Normal searh
             score = -minimax(newBoard, depth - 1, -beta, -alpha, path);
         }
 
@@ -1665,14 +1708,17 @@ int minimax(Board board, int depth, int alpha, int beta, std::vector<uint64_t>& 
             bestScore = score;
             bestMoveFound = move;
 
+            // Alpha cutoff
             if (bestScore > alpha) {
             alpha = bestScore;
             foundPv = true;
         }
         }
 
+        // Beta cutoff
         if (alpha >= beta) {
             if (!isCapture) {
+                // Update killer moves
                 if (killerMoves[depth][0] != move) {
                     killerMoves[depth][1] = killerMoves[depth][0];
                     killerMoves[depth][0] = move;
@@ -1681,6 +1727,7 @@ int minimax(Board board, int depth, int alpha, int beta, std::vector<uint64_t>& 
                 int from = MoveEncoder::getFrom(move);
                 int to = MoveEncoder::getTo(move);
 
+                // Increment heuristics value
                 gameHistory[board.whiteToMove][from][to] += depth*depth;
 
                 if (gameHistory[board.whiteToMove][from][to] > 20000)
@@ -1694,6 +1741,7 @@ int minimax(Board board, int depth, int alpha, int beta, std::vector<uint64_t>& 
 
     path.pop_back();
 
+    //Store TT
     TTFlag flag;
     if (bestScore <= originalAlpha) flag = UPPERBOUND;
     else if (bestScore >= beta) flag = LOWERBOUND;
@@ -1760,17 +1808,15 @@ Move findBestMove(const Board& board, int maxTimeMs)
                 if (duration == 0) duration = 1;
                 long long nps = (nodes * 1000) / duration;
 
-                Move moveToSend = (currentBestMove != 0) ? currentBestMove : bestMove;
-
                 std::cout << "info depth " << depth 
                           << " nodes " << nodes 
                           << " time " << duration 
                           << " nps " << nps 
                           << " score cp " << currentBestScore
-                          << " pv " << moveToUCI(moveToSend) 
+                          << " pv " << moveToUCI(bestMove)
                           << "\n";
 
-                return moveToSend;
+                return bestMove;
             }
         }
 
