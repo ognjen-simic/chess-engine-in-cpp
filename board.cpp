@@ -1,4 +1,7 @@
 #include "Board.h"
+#include <sstream>
+#include <cctype>
+#include "zobrist.h"
 
 std::bitset<64> Board::getWhitePieces() const
 {
@@ -59,4 +62,60 @@ bool Board::isEnemyPiece(char piece, bool white) const {
     else {
         return (piece >= 'A' && piece <= 'Z');
     }
+}
+
+void Board::setFromFEN(const std::string& fen) {
+    whitePawns = whiteKnights = whiteBishops = whiteRooks = whiteQueen = whiteKing = 0;
+    blackPawns = blackKnights = blackBishops = blackRooks = blackQueen = blackKing = 0;
+    
+    std::istringstream iss(fen);
+    std::string boardPart, activeColor, castling, enPassant;
+    
+    iss >> boardPart >> activeColor >> castling >> enPassant;
+    
+    int rank = 7;
+    int file = 0;
+    
+    for (char c : boardPart) {
+        if (c == '/') {
+            rank--;
+            file = 0;
+        } else if (isdigit(c)) {
+            file += c - '0';
+        } else {
+            int index = rank * 8 + file;
+            switch(c) {
+                case 'P': whitePawns.set(index); break;
+                case 'N': whiteKnights.set(index); break;
+                case 'B': whiteBishops.set(index); break;
+                case 'R': whiteRooks.set(index); break;
+                case 'Q': whiteQueen.set(index); break;
+                case 'K': whiteKing.set(index); break;
+                case 'p': blackPawns.set(index); break;
+                case 'n': blackKnights.set(index); break;
+                case 'b': blackBishops.set(index); break;
+                case 'r': blackRooks.set(index); break;
+                case 'q': blackQueen.set(index); break;
+                case 'k': blackKing.set(index); break;
+            }
+            file++;
+        }
+    }
+
+    whiteToMove = (activeColor == "w");
+
+    whiteCanCastleKingside = castling.find('K') != std::string::npos;
+    whiteCanCastleQueenside = castling.find('Q') != std::string::npos;
+    blackCanCastleKingside = castling.find('k') != std::string::npos;
+    blackCanCastleQueenside = castling.find('q') != std::string::npos;
+
+    if (enPassant == "-") {
+        en_passant = -1;
+    } else {
+        char fileChar = enPassant[0];
+        char rankChar = enPassant[1];
+        en_passant = (rankChar - '1') * 8 + (fileChar - 'a');
+    }
+
+    hash = Zobrist::computeHash(*this);
 }

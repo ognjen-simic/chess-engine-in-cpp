@@ -39,6 +39,7 @@ std::bitset<64> getOwnPieces(bool whiteToMove) const;
 std::bitset<64> getOpponentPieces(bool whiteToMove) const;
 char getPieceAt(int index) const;
 bool isEnemyPiece(char piece, bool white) const;
+void setFromFEN(const std::string& fen);
 };
 
 #endif

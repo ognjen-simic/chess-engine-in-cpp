@@ -98,6 +98,23 @@ void uciLoop() {
                 repHistory.clear();
                 repHistory.push_back(board.hash);
             }
+            else if (next == "fen") {
+                std::string fen, word;
+                fen = "";
+                while (iss >> word && word != "moves") {
+                    fen += word + " ";
+                }
+                fen.pop_back();
+                board.setFromFEN(fen);
+
+                if (word == "moves") {
+                    std::string move;
+                    while (iss >> move) {
+                        Move m = parseMove(move, board);
+                        if (m != 0) makeMove(m, board);
+                    }
+                }
+            }
 
             std::string word;
             if (iss >> word && word == "moves") {
